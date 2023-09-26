@@ -168,8 +168,8 @@ public final class MessageInputActionButtonComponent: Component {
                 }
                 return true
             }
-            self.containerNode.activated = { [weak self] gesture, _ in
-                guard let self, let component = self.component, let longPressAction = component.longPressAction else {
+            self.containerNode.activated = { [weak self] gesture, _, isFinish in
+                guard let self, let component = self.component, let longPressAction = component.longPressAction, isFinish else {
                     return
                 }
                 self.acceptNextButtonPress = false

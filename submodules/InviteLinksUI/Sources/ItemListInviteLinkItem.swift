@@ -238,8 +238,8 @@ public class ItemListInviteLinkItemNode: ListViewItemNode, ItemListItemNode {
         self.offsetContainerNode.addSubnode(self.titleNode)
         self.offsetContainerNode.addSubnode(self.subtitleNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.layoutParams?.0, let invite = item.invite, let contextAction = item.contextAction else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.layoutParams?.0, let invite = item.invite, let contextAction = item.contextAction, isFinish else {
                 gesture.cancel()
                 return
             }

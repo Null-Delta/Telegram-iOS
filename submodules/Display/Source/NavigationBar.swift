@@ -250,7 +250,9 @@ public final class NavigationBackgroundNode: ASDisplayNode {
         self.updateBackgroundBlur(forceKeepBlur: forceKeepBlur)
     }
 
+    public var isLayoutLocked: Bool = false
     public func update(size: CGSize, cornerRadius: CGFloat = 0.0, transition: ContainedViewLayoutTransition, beginWithCurrentState: Bool = true) {
+        guard !isLayoutLocked else { return }
         self.validLayout = (size, cornerRadius)
 
         let contentFrame = CGRect(origin: CGPoint(), size: size)

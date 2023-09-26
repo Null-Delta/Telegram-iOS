@@ -78,8 +78,8 @@ private final class VisualMediaItemNode: ASDisplayNode {
         self.containerNode.addSubnode(self.imageNode)
         self.containerNode.addSubnode(self.mediaBadgeNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, isFinish else {
                 return
             }
             if let message = item.0.message {

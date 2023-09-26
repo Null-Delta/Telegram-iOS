@@ -177,6 +177,8 @@ public final class ChatListNavigationBar: Component {
         private weak var disappearingTabsView: UIView?
         private var disappearingTabsViewSearch: Bool = false
         
+        private var archiveOverlay: ArchiveActivationView
+        
         private var currentHeaderComponent: ChatListHeaderComponent?
         
         override public init(frame: CGRect) {
@@ -185,9 +187,12 @@ public final class ChatListNavigationBar: Component {
             self.separatorLayer = SimpleLayer()
             self.separatorLayer.anchorPoint = CGPoint()
             
+            self.archiveOverlay = ArchiveActivationView()
+            
             super.init(frame: frame)
             
             self.addSubview(self.backgroundView)
+            self.addSubview(self.archiveOverlay)
             self.layer.addSublayer(self.separatorLayer)
         }
         
@@ -218,6 +223,8 @@ public final class ChatListNavigationBar: Component {
                 self.applyScroll(offset: rawScrollOffset, allowAvatarsExpansion: self.currentAllowAvatarsExpansion, transition: transition)
             }
         }
+        
+        private var lastOffset: CGFloat = 0
         
         public func applyScroll(offset: CGFloat, allowAvatarsExpansion: Bool, forceUpdate: Bool = false, transition: Transition) {
             let transition = transition
@@ -251,7 +258,21 @@ public final class ChatListNavigationBar: Component {
             self.hasDeferredScrollOffset = false
             self.clippedScrollOffset = clippedScrollOffset
             
-            let visibleSize = CGSize(width: currentLayout.size.width, height: max(0.0, currentLayout.size.height - clippedScrollOffset))
+            if !ArchiveShowProvider.isArchiveAnimating {
+                lastOffset = offset
+            }
+                        
+            let isStoriesEnabled = component.storySubscriptions?.items.count != 0
+
+            let koef = ArchiveShowProvider.isArchiveAnimating && isStoriesEnabled ? (offset + 83) / (lastOffset + 83) : 0
+            let storiesFactor = max(0.0, max(0.0, min(4.0, (-offset + ArchiveShowProvider.listItemSize * koef) / ChatListNavigationBar.storiesScrollHeight)) - 1)
+            let storiesOffset: CGFloat = isStoriesEnabled ? ChatListNavigationBar.storiesScrollHeight + storiesFactor * 83.0 * 0.5 * 0.3 : 0
+            var visibleSize: CGSize = .zero
+            if ArchiveShowProvider.isMainTab && !ArchiveShowProvider.isArchiveShown && !component.storiesIncludeHidden {
+                visibleSize = CGSize(width: currentLayout.size.width, height: min(currentLayout.size.height + storiesOffset, max(0.0, currentLayout.size.height - clippedScrollOffset)))
+            } else {
+                visibleSize = CGSize(width: currentLayout.size.width, height: max(0.0, currentLayout.size.height - clippedScrollOffset))
+            }
             
             let previousHeight = self.separatorLayer.position.y
             
@@ -307,6 +328,23 @@ public final class ChatListNavigationBar: Component {
             if !component.isSearchActive {
                 searchFrame.origin.y -= component.accessoryPanelContainerHeight
             }
+                        
+            archiveOverlay.frame.origin = CGPoint(x: 0, y: visibleSize.height)
+
+            if ArchiveShowProvider.isMainTab && !ArchiveShowProvider.isArchiveShown && !component.storiesIncludeHidden {
+                archiveOverlay.updateSize(newSize: CGSize(
+                    width: currentLayout.size.width,
+                    height: max(0, -offset - storiesOffset)
+                ))
+            } else {
+                archiveOverlay.updateSize(
+                    newSize: CGSize(
+                        width: currentLayout.size.width,
+                        height: 0
+                    ),
+                    ignoreArchive: true
+                )
+            }
             
             let clippedSearchOffset = max(0.0, min(clippedScrollOffset, searchOffsetDistance))
             let searchOffsetFraction = clippedSearchOffset / searchOffsetDistance
@@ -321,7 +359,7 @@ public final class ChatListNavigationBar: Component {
             let storiesOffsetFraction: CGFloat
             let storiesUnlocked: Bool
             if allowAvatarsExpansion {
-                storiesOffsetFraction = max(0.0, min(4.0, -offset / ChatListNavigationBar.storiesScrollHeight))
+                storiesOffsetFraction = max(0.0, min(4.0,  (-offset + ArchiveShowProvider.listItemSize * koef) / ChatListNavigationBar.storiesScrollHeight))
                 if offset <= -65.0 {
                     storiesUnlocked = true
                 } else if offset >= -61.0 {

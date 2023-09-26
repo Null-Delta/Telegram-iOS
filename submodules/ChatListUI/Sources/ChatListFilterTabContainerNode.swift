@@ -161,8 +161,8 @@ private final class ItemNode: ASDisplayNode {
         self.buttonNode.isExclusiveTouch = true
         self.buttonNode.addTarget(self, action: #selector(self.buttonPressed), forControlEvents: .touchUpInside)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             contextGesture(strongSelf.extractedContainerNode, gesture, strongSelf.isDisabled)

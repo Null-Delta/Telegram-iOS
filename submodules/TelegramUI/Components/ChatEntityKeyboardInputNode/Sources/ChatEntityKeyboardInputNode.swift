@@ -2051,6 +2051,7 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
     let controller: ViewController
     weak var sourceView: UIView?
     let sourceRect: CGRect
+    var sourceNode: ASDisplayNode? = nil
     
     let navigationController: NavigationController? = nil
     

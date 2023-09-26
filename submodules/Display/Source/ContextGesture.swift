@@ -62,8 +62,41 @@ private func cancelOtherGestures(gesture: ContextGesture, view: UIView) {
     }
 }
 
+
+public class ContextGestureDurationProvider: NSObject, UIContextMenuInteractionDelegate {
+    @available(iOS 13.0, *)
+    public func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
+        return .init()
+    }
+    
+    public static var instance = ContextGestureDurationProvider()
+    
+    public static var duration: Double {
+        if #available(iOS 13, *) {
+            lazy var interaction = UIContextMenuInteraction(delegate: ContextGestureDurationProvider.instance)
+            let testView = UIView(frame: .init(x: 0, y: 0, width: 100, height: 100))
+            testView.addInteraction(interaction)
+            
+            let contextGestureDurationValue = ((testView.gestureRecognizers![0].value(forKey: "_targets") as! [NSObject])[0].value(forKey: "target") as! NSObject).value(forKey: "clickDownDuration") as? Double ?? 0.4
+            
+            if contextGestureDurationValue < 0.4 {
+                return 0.1
+            } else if contextGestureDurationValue < 0.5 {
+                return 0.25
+            } else {
+                return 0.6
+            }
+        } else {
+            return 0.2
+        }
+    }
+    
+}
 public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDelegate {
     public var beginDelay: Double = 0.12
+    public var duration: Double = 0.2
+    public var isAnimating: Bool = false
+    
     public var activateOnTap: Bool = false
     private var currentProgress: CGFloat = 0.0
     private var delayTimer: Timer?
@@ -78,7 +111,8 @@ public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDeleg
     public var externalEnded: (((UIView?, CGPoint)?) -> Void)?
     public var activatedAfterCompletion: ((CGPoint, Bool) -> Void)?
     public var cancelGesturesOnActivation: (() -> Void)?
-    
+    public var onAnimationStart: (() -> Void)?
+
     override public init(target: Any?, action: Selector?) {
         super.init(target: target, action: action)
         
@@ -129,14 +163,17 @@ public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDeleg
             return
         }
         
+        self.duration = ContextGestureDurationProvider.duration
+        
         if self.delayTimer == nil {
             let delayTimer = Timer(timeInterval: self.beginDelay, target: TimerTargetWrapper { [weak self] in
                 guard let strongSelf = self, let _ = strongSelf.delayTimer else {
                     return
                 }
                 strongSelf.isValidated = true
+                strongSelf.onAnimationStart?()
                 if strongSelf.animator == nil {
-                    strongSelf.animator = DisplayLinkAnimator(duration: 0.2, from: 0.0, to: 1.0, update: { value in
+                    strongSelf.animator = DisplayLinkAnimator(duration: strongSelf.duration, from: 0.0, to: 1.0, update: { value in
                         guard let strongSelf = self else {
                             return
                         }

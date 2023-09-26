@@ -119,8 +119,8 @@ class ChatMessageInstantVideoItemNode: ChatMessageItemView, UIGestureRecognizerD
             return true
         }
         
-        self.containerNode.activated = { [weak self] gesture, location in
-            guard let strongSelf = self, let item = strongSelf.item else {
+        self.containerNode.activated = { [weak self] gesture, location, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, isFinish else {
                 return
             }
             if let action = strongSelf.gestureRecognized(gesture: .longTap, location: location, recognizer: nil) {

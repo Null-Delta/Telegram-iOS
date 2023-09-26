@@ -219,8 +219,8 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         
         self.addSubnode(self.separatorNode)
         
-        self.contextContainer.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.contextContainer.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             if let interfaceInteraction = strongSelf.interfaceInteraction, let _ = strongSelf.currentMessage, !strongSelf.isReplyThread {

@@ -57,12 +57,14 @@ public struct ListViewItemLayoutParams {
     public let leftInset: CGFloat
     public let rightInset: CGFloat
     public let availableHeight: CGFloat
+    public let ignoreHeader: Bool
     
-    public init(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, availableHeight: CGFloat) {
+    public init(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, availableHeight: CGFloat, ignoreHeader: Bool = false) {
         self.width = width
         self.leftInset = leftInset
         self.rightInset = rightInset
         self.availableHeight = availableHeight
+        self.ignoreHeader = ignoreHeader
     }
 }
 
@@ -91,7 +93,8 @@ open class ListViewItemNode: ASDisplayNode, AccessibilityFocusableNode {
     public internal(set) final var index: Int?
     
     public var isHighlightedInOverlay: Bool = false
-    
+    public var isArchive: Bool = false
+
     public private(set) var accessoryItemNode: ListViewAccessoryItemNode?
 
     func setAccessoryItemNode(_ accessoryItemNode: ListViewAccessoryItemNode?, leftInset: CGFloat, rightInset: CGFloat) {

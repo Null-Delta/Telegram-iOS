@@ -1577,8 +1577,8 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
             }
         }
 
-        self.contextGestureContainerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let currentGestureItem = strongSelf.currentGestureItem else {
+        self.contextGestureContainerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let currentGestureItem = strongSelf.currentGestureItem, isFinish else {
                 return
             }
             strongSelf.currentGestureItem = nil

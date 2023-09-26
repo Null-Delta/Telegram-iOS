@@ -120,8 +120,8 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
             }
         }
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            if let strongSelf = self {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            if let strongSelf = self, isFinish {
                 strongSelf.action(strongSelf, gesture)
             }
         }
@@ -338,8 +338,8 @@ final class PeerInfoHeaderActionButtonNode: HighlightableButtonNode {
             }
         }
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            if let strongSelf = self {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            if let strongSelf = self, isFinish {
                 strongSelf.action(strongSelf, gesture)
             }
         }
@@ -442,8 +442,8 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.tapGesture(_:)))
         self.avatarNode.view.addGestureRecognizer(tapGestureRecognizer)
        
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             tapGestureRecognizer.isEnabled = false
@@ -1436,8 +1436,8 @@ final class PeerInfoHeaderNavigationButton: HighlightableButtonNode {
 
         self.addSubnode(self.containerNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             strongSelf.action?(strongSelf.contextSourceNode, gesture)

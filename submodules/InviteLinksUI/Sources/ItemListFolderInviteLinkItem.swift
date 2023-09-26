@@ -216,8 +216,8 @@ public class ItemListFolderInviteLinkItemNode: ListViewItemNode, ItemListItemNod
         
         self.addSubnode(self.activateArea)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            if let strongSelf = self, let item = strongSelf.item {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            if let strongSelf = self, let item = strongSelf.item, isFinish {
                 item.contextAction?(strongSelf.referenceContainerNode, gesture)
             }
         }

@@ -1116,8 +1116,8 @@ public final class CalendarMessageScreen: ViewController {
                 }
             }
 
-            self.contextGestureContainerNode.activated = { [weak self] gesture, _ in
-                guard let strongSelf = self, let currentGestureDayView = strongSelf.currentGestureDayView else {
+            self.contextGestureContainerNode.activated = { [weak self] gesture, _, isFinish in
+                guard let strongSelf = self, let currentGestureDayView = strongSelf.currentGestureDayView, isFinish else {
                     return
                 }
                 strongSelf.currentGestureDayView = nil

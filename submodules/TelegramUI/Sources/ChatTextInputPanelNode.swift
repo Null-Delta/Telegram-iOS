@@ -819,8 +819,8 @@ class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDelegate {
         
         self.addSubnode(self.clippingNode)
         
-        self.sendAsAvatarContainerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.sendAsAvatarContainerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             strongSelf.interfaceInteraction?.openSendAsPeer(strongSelf.sendAsAvatarReferenceNode, gesture)

@@ -46,7 +46,7 @@ public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParam
             }
         }
         
-        let controller = ChatListControllerImpl(context: params.context, location: .forum(peerId: peer.id), controlsHistoryPreload: false, enableDebugActions: false)
+        let controller = ChatListControllerImpl(context: params.context, location: .forum(peerId: peer.id), controlsHistoryPreload: false, enableDebugActions: false, animationInController: ChatListContextAnimationInController(), animationOutController: ChatListContextAnimationOutController())
         
         let activateMessageSearch = params.activateMessageSearch
         params.navigationController.pushViewController(controller, completion: { [weak controller] in
@@ -344,7 +344,7 @@ public func chatControllerForForumThreadImpl(context: AccountContext, peerId: En
 }
 
 public func navigateToForumChannelImpl(context: AccountContext, peerId: EnginePeer.Id, navigationController: NavigationController) {
-    let controller = ChatListControllerImpl(context: context, location: .forum(peerId: peerId), controlsHistoryPreload: false, enableDebugActions: false)
+    let controller = ChatListControllerImpl(context: context, location: .forum(peerId: peerId), controlsHistoryPreload: false, enableDebugActions: false, animationInController: ChatListContextAnimationInController(), animationOutController: ChatListContextAnimationOutController())
     controller.navigationPresentation = .master
     navigationController.pushViewController(controller)
 }

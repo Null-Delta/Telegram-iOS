@@ -16,7 +16,7 @@ import AvatarStoryIndicatorComponent
 private let deletedIcon = UIImage(bundleImageName: "Avatar/DeletedIcon")?.precomposed()
 private let phoneIcon = generateTintedImage(image: UIImage(bundleImageName: "Avatar/PhoneIcon"), color: .white)
 public let savedMessagesIcon = generateTintedImage(image: UIImage(bundleImageName: "Avatar/SavedMessagesIcon"), color: .white)
-private let archivedChatsIcon = UIImage(bundleImageName: "Avatar/ArchiveAvatarIcon")?.precomposed()
+public let archivedChatsIcon = generateTintedImage(image: UIImage(bundleImageName: "Avatar/ArchiveAvatarIcon"), color: .white)
 private let repliesIcon = generateTintedImage(image: UIImage(bundleImageName: "Avatar/RepliesMessagesIcon"), color: .white)
 
 public func avatarPlaceholderFont(size: CGFloat) -> UIFont {
@@ -89,14 +89,8 @@ private func calculateColors(explicitColorIndex: Int?, peerId: EnginePeer.Id?, i
             colors = AvatarNode.savedMessagesColors
         } else if case .editAvatarIcon = icon, let theme {
             colors = [theme.list.itemAccentColor.withAlphaComponent(0.1), theme.list.itemAccentColor.withAlphaComponent(0.1)]
-        } else if case let .archivedChatsIcon(hiddenByDefault) = icon, let theme = theme {
-            let backgroundColors: (UIColor, UIColor)
-            if hiddenByDefault {
-                backgroundColors = theme.chatList.unpinnedArchiveAvatarColor.backgroundColors.colors
-            } else {
-                backgroundColors = theme.chatList.pinnedArchiveAvatarColor.backgroundColors.colors
-            }
-            colors = [backgroundColors.1, backgroundColors.0]
+        } else if case .archivedChatsIcon = icon {
+            colors = AvatarNode.savedMessagesColors
         } else {
             colors = AvatarNode.grayscaleColors
         }
@@ -562,17 +556,6 @@ public final class AvatarNode: ASDisplayNode {
             
             let colorsArray: NSArray = colors.map(\.cgColor) as NSArray
             
-            var iconColor = UIColor.white
-            if let parameters = parameters as? AvatarNodeParameters, parameters.icon != .none {
-                if case let .archivedChatsIcon(hiddenByDefault) = parameters.icon, let theme = parameters.theme {
-                    if hiddenByDefault {
-                        iconColor = theme.chatList.unpinnedArchiveAvatarColor.foregroundColor
-                    } else {
-                        iconColor = theme.chatList.pinnedArchiveAvatarColor.foregroundColor
-                    }
-                }
-            }
-            
             var locations: [CGFloat] = [1.0, 0.0]
             
             let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -635,7 +618,7 @@ public final class AvatarNode: ASDisplayNode {
                     context.scaleBy(x: factor, y: -factor)
                     context.translateBy(x: -bounds.size.width / 2.0, y: -bounds.size.height / 2.0)
                     
-                    if let archivedChatsIcon = generateTintedImage(image: archivedChatsIcon, color: iconColor) {
+                    if let archivedChatsIcon = generateTintedImage(image: archivedChatsIcon, color: .white) {
                         context.draw(archivedChatsIcon.cgImage!, in: CGRect(origin: CGPoint(x: floor((bounds.size.width - archivedChatsIcon.size.width) / 2.0), y: floor((bounds.size.height - archivedChatsIcon.size.height) / 2.0)), size: archivedChatsIcon.size))
                     }
                 } else {

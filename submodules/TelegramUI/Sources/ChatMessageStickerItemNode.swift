@@ -136,8 +136,8 @@ class ChatMessageStickerItemNode: ChatMessageItemView {
             return true
         }
         
-        self.containerNode.activated = { [weak self] gesture, location in
-            guard let strongSelf = self, let item = strongSelf.item else {
+        self.containerNode.activated = { [weak self] gesture, location, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, isFinish else {
                 return
             }
             

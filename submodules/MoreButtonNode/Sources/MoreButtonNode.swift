@@ -125,8 +125,8 @@ public final class MoreButtonNode: ASDisplayNode {
         
         self.buttonNode.addTarget(self, action: #selector(self.buttonPressed), forControlEvents: .touchUpInside)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             if case .more = strongSelf.iconNode.iconState {

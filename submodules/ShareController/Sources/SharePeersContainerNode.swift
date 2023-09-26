@@ -269,7 +269,7 @@ final class SharePeersContainerNode: ASDisplayNode, ShareContentContainerNode {
         
         self.addSubnode(self.contentSeparatorNode)
         
-        self.shareContainerNode.activated = { [weak self] gesture, _ in
+        self.shareContainerNode.activated = { [weak self] gesture, _, isFinish in
             guard let strongSelf = self else {
                 return
             }

@@ -740,8 +740,8 @@ public final class AudioRateButton: HighlightableButtonNode {
             }
             return true
         }
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             strongSelf.contextAction?(strongSelf.containerNode, gesture)

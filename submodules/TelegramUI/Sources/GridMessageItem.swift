@@ -184,8 +184,8 @@ final class GridMessageItemNode: GridItemNode {
         self.containerNode.addSubnode(self.imageNode)
         self.containerNode.addSubnode(self.mediaBadgeNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item, let controllerInteraction = strongSelf.controllerInteraction else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, let controllerInteraction = strongSelf.controllerInteraction, isFinish else {
                 gesture.cancel()
                 return
             }

@@ -180,7 +180,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         
         var controllers: [ViewController] = []
         
-        let contactsController = ContactsController(context: self.context)
+        let contactsController = ContactsController(context: self.context, animationInController: ChatListContextAnimationInController(), animationOutController: ChatListContextAnimationOutController())
         contactsController.switchToChatsController = {  [weak self] in
             self?.openChatsController(activateSearch: false)
         }

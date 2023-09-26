@@ -232,8 +232,8 @@ final class VoiceChatTileItemNode: ASDisplayNode {
             }
             return true
         }
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item, let contextAction = item.contextAction, !item.isVideoLimit else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, let contextAction = item.contextAction, !item.isVideoLimit, isFinish else {
                 gesture.cancel()
                 return
             }

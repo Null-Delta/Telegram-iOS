@@ -482,8 +482,8 @@ public final class ListMessageFileItemNode: ListMessageNode {
         self.addSubnode(self.restrictionNode)
         self.addSubnode(self.separatorNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item, let message = item.message else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, let message = item.message, isFinish else {
                 return
             }
 

@@ -4,6 +4,63 @@ import SwiftSignalKit
 import UIKitRuntimeUtils
 import ObjCRuntimeUtils
 
+public protocol ArchiveShowObserverProtocol {
+    func archiveShown()
+    func archiveNodeCreated(node: ASDisplayNode)
+    func archiveNodeHidden(node: ASDisplayNode)
+    func archiveSizeChanged()
+    func scrollChanged(offset: CGFloat)
+}
+
+public class ArchiveShowProvider {
+    private static var observers: [ArchiveShowObserverProtocol] = []
+    
+    public static var isMainTab: Bool = true
+    public static var isArchiveShown: Bool = false
+    public static var isArchiveAnimating: Bool = false
+    public static var isScrollContinue: Bool = false
+    public static var avatarSize: CGFloat = 0
+    public static var listItemSize: CGFloat = 0
+
+    public static var isArchiveAddOffset: Bool = false
+
+    public static var canPlayArchiveAnimation: Bool = false
+
+
+    public static func addObserver(observer: ArchiveShowObserverProtocol) {
+        ArchiveShowProvider.observers.append(observer)
+    }
+    
+    public static func notify() {
+        ArchiveShowProvider.observers.forEach {
+            $0.archiveShown()
+        }
+    }
+    
+    public static func archiveItemCreated(node: ASDisplayNode) {
+        ArchiveShowProvider.observers.forEach {
+            $0.archiveNodeCreated(node: node)
+        }
+    }
+    public static func archiveItemHidden(node: ASDisplayNode) {
+        isArchiveShown = false
+        ArchiveShowProvider.observers.forEach {
+            $0.archiveNodeHidden(node: node)
+        }
+    }
+    
+    public static func scrollOffsetChanged(offset: CGFloat) {
+        ArchiveShowProvider.observers.forEach {
+            $0.scrollChanged(offset: offset)
+        }
+    }
+    public static func archiveSizeChanged() {
+        ArchiveShowProvider.observers.forEach {
+            $0.archiveSizeChanged()
+        }
+    }
+}
+
 private let insertionAnimationDuration: Double = 0.4
 
 private struct VisibleHeaderNodeId: Hashable {
@@ -194,6 +251,8 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
     public private(set) final var scrollIndicatorInsets = UIEdgeInsets()
     private final var ensureTopInsetForOverlayHighlightedItems: CGFloat?
     private final var lastContentOffset: CGPoint = CGPoint()
+    private final var scrollGestureOffsetY: CGFloat = 0
+    public final var isTouchEnd: Bool = false
     private final var lastContentOffsetTimestamp: CFAbsoluteTime = 0.0
     private final var ignoreScrollingEvents: Bool = false
     public final var globalIgnoreScrollingEvents: Bool = false
@@ -977,14 +1036,19 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
         //CATransaction.begin()
         //CATransaction.setDisableActions(true)
         
-        let deltaY = scrollView.contentOffset.y - self.lastContentOffset.y
+        ArchiveShowProvider.scrollOffsetChanged(offset: scrollView.contentOffset.y)
+        let deltaY = scrollView.contentOffset.y - self.lastContentOffset.y - self.scrollGestureOffsetY
+        
+        if self.scrollGestureOffsetY != 0 {
+            self.scrollGestureOffsetY = 0
+            scrollView.contentOffset.y = 0
+        }
         
         /*if self.ignoreNextScrollAdjustment {
             self.ignoreNextScrollAdjustment = false
             self.lastContentOffset = scrollView.contentOffset
             return
         }*/
-        
         //if abs(deltaY) > 30.0 {
         //    print("deltaY: \(deltaY)")
         //}
@@ -2805,7 +2869,6 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
                     hadChangesToItemNodes = true
                 case let .UpdateLayout(index, layout, apply):
                     let node = self.itemNodes[index]
-                    
                     let previousApparentHeight = node.apparentHeight
                     let previousInsets = node.insets
                     
@@ -2824,7 +2887,8 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
                     
                     var offsetRanges = OffsetRanges()
                     
-                    if animated {
+                
+                    if animated && !node.isArchive {
                         if updatedInsets != previousInsets {
                             node.insets = previousInsets
                             node.addInsetsAnimationToValue(updatedInsets, duration: insertionAnimationDuration * UIView.animationDurationFactor(), beginAt: timestamp)
@@ -4877,11 +4941,15 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
             case .began:
                 self.isTracking = true
                 self.trackingOffset = 0.0
+                ArchiveShowProvider.isScrollContinue = true
             case .changed:
                 self.touchesPosition = recognizer.location(in: self.view)
             case .ended, .cancelled:
                 self.isTracking = false
+                self.isTouchEnd = true
+                ArchiveShowProvider.isScrollContinue = false
             default:
+                ArchiveShowProvider.isScrollContinue = false
                 break
         }
     }

@@ -145,8 +145,8 @@ public final class ListMessageSnippetItemNode: ListMessageNode {
         self.offsetContainerNode.addSubnode(self.iconImageNode)
         self.offsetContainerNode.addSubnode(self.authorNode)
         
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item, let message = item.message else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, let message = item.message, isFinish else {
                 return
             }
             

@@ -83,7 +83,7 @@ public final class ShareActionButtonNode: HighlightTrackingButtonNode {
             }
             return true
         }
-        self.containerNode.activated = { [weak self] gesture, _ in
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
             guard let strongSelf = self else {
                 return
             }

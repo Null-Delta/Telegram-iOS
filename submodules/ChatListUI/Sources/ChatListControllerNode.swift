@@ -1062,8 +1062,10 @@ public final class ChatListContainerNode: ASDisplayNode, UIGestureRecognizerDele
             switch id {
             case .all:
                 filterId = nil
+                ArchiveShowProvider.isMainTab = true
             case let .filter(filter):
                 filterId = filter
+                ArchiveShowProvider.isMainTab = false
             }
             return (state, filterId)
         })
@@ -1715,7 +1717,7 @@ public final class ChatListContainerNode: ASDisplayNode, UIGestureRecognizerDele
     }
 }
 
-final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
+public final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     private let context: AccountContext
     private let location: ChatListControllerLocation
     private var presentationData: PresentationData
@@ -1738,7 +1740,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     var temporaryContentOffsetChangeTransition: ContainedViewLayoutTransition?
     
     private var tapRecognizer: UITapGestureRecognizer?
-    var navigationBar: NavigationBar?
+    public var navigationBar: NavigationBar?
     let navigationBarView = ComponentView<Empty>()
     weak var controller: ChatListControllerImpl?
     
@@ -1815,7 +1817,19 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         self.addSubnode(self.mainContainerNode)
         
         self.mainContainerNode.contentOffsetChanged = { [weak self] offset, listView in
-            self?.contentOffsetChanged(offset: offset, listView: listView, isPrimary: true)
+            guard let strongSelf = self else { return }
+            
+            if !strongSelf.mainContainerNode.currentItemNode.isTracking && ArchiveShowProvider.canPlayArchiveAnimation && strongSelf.mainContainerNode.currentItemNode.isTouchEnd {
+                strongSelf.mainContainerNode.currentItemNode.revealScrollHiddenItem()
+                strongSelf.mainContainerNode.currentItemNode.isTouchEnd = false
+                ArchiveShowProvider.canPlayArchiveAnimation = false
+            }
+            
+            if strongSelf.mainContainerNode.currentItemNode.isTouchEnd {
+                strongSelf.mainContainerNode.currentItemNode.isTouchEnd = false
+            }
+
+            strongSelf.contentOffsetChanged(offset: offset, listView: listView, isPrimary: true)
         }
         self.mainContainerNode.contentScrollingEnded = { [weak self] listView in
             return self?.contentScrollingEnded(listView: listView, isPrimary: true) ?? false
@@ -1912,7 +1926,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         self.view.addGestureRecognizer(inlineContentPanRecognizer)
     }
     
-    override func didLoad() {
+    override public func didLoad() {
         super.didLoad()
         
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.tapGesture(_:)))
@@ -1927,11 +1941,11 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         }
     }
     
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         return false
     }
     
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         if let _ = otherGestureRecognizer as? InteractiveTransitionGestureRecognizer {
             return false
         }
@@ -2471,7 +2485,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
                             manuallyAllow = true
                         }
                         
-                        if manuallyAllow, case let .known(value) = offset, value + listView.tempTopInset <= -40.0 {
+                        if manuallyAllow, case let .known(value) = offset, value + listView.tempTopInset <= -ArchiveShowProvider.listItemSize {
                             overscrollHiddenChatItemsAllowed = true
                         }
                     }
@@ -2488,7 +2502,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
                                 self.allowOverscrollItemExpansion = false
                                 
                                 if isPrimary {
-                                    self.mainContainerNode.currentItemNode.revealScrollHiddenItem()
+                                    //self.mainContainerNode.currentItemNode.revealScrollHiddenItem()
                                 } else {
                                     self.inlineStackContainerNode?.currentItemNode.revealScrollHiddenItem()
                                 }

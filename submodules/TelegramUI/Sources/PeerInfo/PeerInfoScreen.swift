@@ -2940,6 +2940,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 }))
             ]
             let contextController = ContextController(account: strongSelf.context.account, presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            contextController.selectAnimationControllersFromSource()
             controller.presentInGlobalOverlay(contextController)
         }
         
@@ -10501,8 +10502,8 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         
         if !chatNavigationStack.isEmpty {
             self.navigationBar?.backButtonNode.isGestureEnabled = true
-            self.navigationBar?.backButtonNode.activated = { [weak self] gesture, _ in
-                guard let strongSelf = self, let backButtonNode = strongSelf.navigationBar?.backButtonNode, let navigationController = strongSelf.navigationController as? NavigationController else {
+            self.navigationBar?.backButtonNode.activated = { [weak self] gesture, _, isFinish in
+                guard let strongSelf = self, let backButtonNode = strongSelf.navigationBar?.backButtonNode, let navigationController = strongSelf.navigationController as? NavigationController, isFinish else {
                     gesture.cancel()
                     return
                 }

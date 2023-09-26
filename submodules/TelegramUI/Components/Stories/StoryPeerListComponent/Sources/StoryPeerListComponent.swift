@@ -815,10 +815,8 @@ public final class StoryPeerListComponent: Component {
             
             let totalOverscrollFraction: CGFloat = max(0.0, collapsedState.maxFraction - 1.0)
             let overscrollStage1 = min(0.5, totalOverscrollFraction)
-            let overscrollStage2 = max(0.0, totalOverscrollFraction - 0.5)
-            
-            //let realTimeOverscrollFraction: CGFloat = max(0.0, (1.0 - component.collapseFraction) - 1.0)
-            let realTimeOverscrollFraction = totalOverscrollFraction
+            let overscrollStage2 = ArchiveShowProvider.isArchiveShown ? max(0.0, totalOverscrollFraction - 0.5) : max(0.0, (totalOverscrollFraction - 0.5) * 0.3)
+            let realTimeOverscrollFraction = ArchiveShowProvider.isArchiveShown ? totalOverscrollFraction : totalOverscrollFraction * 0.3
             
             var overscrollFocusIndex: Int?
             for i in 0 ..< self.sortedItems.count {

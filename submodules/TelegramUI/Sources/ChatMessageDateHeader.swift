@@ -494,8 +494,8 @@ final class ChatMessageAvatarHeaderNode: ListViewItemHeaderNode {
             self.updateStoryStats(storyStats: storyStats, theme: presentationData.theme.theme, force: true)
         }
 
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let peer = strongSelf.peer else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let peer = strongSelf.peer, isFinish else {
                 return
             }
             var messageId: MessageId?

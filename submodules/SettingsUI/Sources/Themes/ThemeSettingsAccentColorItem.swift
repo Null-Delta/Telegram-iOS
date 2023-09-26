@@ -306,8 +306,8 @@ private final class ThemeSettingsAccentColorIconItemNode : ListViewItemNode {
         self.containerNode.addSubnode(self.dotsNode)
         self.containerNode.addSubnode(self.centerNode)
 
-        self.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self, let item = strongSelf.item else {
+        self.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item , isFinish else {
                 gesture.cancel()
                 return
             }

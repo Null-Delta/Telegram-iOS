@@ -656,8 +656,8 @@ class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewItemNode
             return true
         }
         
-        self.mainContainerNode.activated = { [weak self] gesture, location in
-            guard let strongSelf = self, let item = strongSelf.item else {
+        self.mainContainerNode.activated = { [weak self] gesture, location, isFinish in
+            guard let strongSelf = self, let item = strongSelf.item, isFinish else {
                 return
             }
             
@@ -3007,13 +3007,13 @@ class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewItemNode
                     }
                     return true
                 }
-                containerNode.activated = { [weak strongSelf, weak containerNode] gesture, location in
-                    guard let strongSelf = strongSelf, let strongContainerNode = containerNode else {
+                containerNode.activated = { [weak strongSelf, weak containerNode] gesture, location, isFinish in
+                    guard let strongSelf = strongSelf, let strongContainerNode = containerNode, isFinish else {
                         return
                     }
                     
                     let location = location.offsetBy(dx: 0.0, dy: strongContainerNode.frame.minY)
-                    strongSelf.mainContainerNode.activated?(gesture, location)
+                    strongSelf.mainContainerNode.activated?(gesture, location, true)
                 }
             
                 containerNode.addSubnode(contextSourceNode)

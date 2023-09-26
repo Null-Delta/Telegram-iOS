@@ -574,8 +574,8 @@ public final class StoryPeerListItemComponent: Component {
             }
             self.button.addTarget(self, action: #selector(self.pressed), for: .touchUpInside)
             
-            self.containerNode.activated = { [weak self] gesture, _ in
-                guard let self, let component = self.component else {
+            self.containerNode.activated = { [weak self] gesture, _, isFinish in
+                guard let self, let component = self.component, isFinish else {
                     return
                 }
                 self.button.isEnabled = false

@@ -272,8 +272,8 @@ private final class TabBarNodeContainer {
             updateSelectedImage(value)
         }
         
-        imageNode.containerNode.activated = { [weak self] gesture, _ in
-            guard let strongSelf = self else {
+        imageNode.containerNode.activated = { [weak self] gesture, _, isFinish in
+            guard let strongSelf = self, isFinish else {
                 return
             }
             contextAction(strongSelf.imageNode.extractedContainerNode, gesture)
