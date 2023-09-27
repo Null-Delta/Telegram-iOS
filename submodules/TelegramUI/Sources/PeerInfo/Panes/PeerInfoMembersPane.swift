@@ -83,7 +83,7 @@ private enum PeerMembersListEntry: Comparable, Identifiable {
         }
     }
     
-    func item(context: AccountContext, presentationData: PresentationData, enclosingPeer: Peer, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void) -> ListViewItem {
+    func item(context: AccountContext, presentationData: PresentationData, enclosingPeer: Peer, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void, contextAction: ((Peer, ASDisplayNode, ContextGesture?) -> Void)?) -> ListViewItem {
         switch self {
             case let .addMember(_, text):
                 return ItemListPeerActionItem(presentationData: ItemListPresentationData(presentationData), icon: PresentationResourcesItemList.addPersonIcon(presentationData.theme), title: text, alwaysPlain: true, sectionId: 0, height: .compactPeerList, color: .accent, editing: false, action: {
@@ -122,24 +122,28 @@ private enum PeerMembersListEntry: Comparable, Identifiable {
                         action(member, .remove)
                     }))
                 }
+            
+            
                 
                 return ItemListPeerItem(presentationData: ItemListPresentationData(presentationData), dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, context: context, peer: EnginePeer(member.peer), presence: member.presence.flatMap(EnginePeer.Presence.init), text: .presence, label: label == nil ? .none : .text(label!, .standard), editing: ItemListPeerItemEditing(editable: !options.isEmpty, editing: false, revealed: false), revealOptions: ItemListPeerItemRevealOptions(options: options), switchValue: nil, enabled: true, selectable: member.id != context.account.peerId, sectionId: 0, action: {
                     action(member, .open)
                 }, setPeerIdWithRevealedOptions: { _, _ in
                 }, removePeer: { _ in
-                }, contextAction: nil, hasTopStripe: false, noInsets: true, noCorners: true, disableInteractiveTransitionIfNecessary: true, storyStats: member.storyStats, openStories: { sourceView in
+                }, contextAction: { node, gesture in
+                    contextAction?(member.peer, node, gesture)
+                }, hasTopStripe: false, noInsets: true, noCorners: true, disableInteractiveTransitionIfNecessary: true, storyStats: member.storyStats, openStories: { sourceView in
                     action(member, .openStories(sourceView: sourceView))
                 })
         }
     }
 }
 
-private func preparedTransition(from fromEntries: [PeerMembersListEntry], to toEntries: [PeerMembersListEntry], context: AccountContext, presentationData: PresentationData, enclosingPeer: Peer, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void) -> PeerMembersListTransaction {
+private func preparedTransition(from fromEntries: [PeerMembersListEntry], to toEntries: [PeerMembersListEntry], context: AccountContext, presentationData: PresentationData, enclosingPeer: Peer, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void, contextAction: ((Peer, ASDisplayNode, ContextGesture?) -> Void)?) -> PeerMembersListTransaction {
     let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries)
     
     let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
-    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: addMemberAction, action: action), directionHint: nil) }
-    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: addMemberAction, action: action), directionHint: nil) }
+    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: addMemberAction, action: action, contextAction: contextAction), directionHint: nil) }
+    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: addMemberAction, action: action, contextAction: contextAction), directionHint: nil) }
     
     return PeerMembersListTransaction(deletions: deletions, insertions: insertions, updates: updates, animated: toEntries.count < fromEntries.count)
 }
@@ -149,6 +153,7 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
     private let membersContext: PeerInfoMembersContext
     private let addMemberAction: () -> Void
     private let action: (PeerInfoMember, PeerMembersListAction) -> Void
+    private let contextAction: (Peer, ASDisplayNode, ContextGesture?) -> Void
     
     weak var parentController: ViewController?
     
@@ -179,11 +184,12 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
         
     private var disposable: Disposable?
     
-    init(context: AccountContext, peerId: PeerId, membersContext: PeerInfoMembersContext, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void) {
+    init(context: AccountContext, peerId: PeerId, membersContext: PeerInfoMembersContext, addMemberAction: @escaping () -> Void, action: @escaping (PeerInfoMember, PeerMembersListAction) -> Void, contextAction: @escaping (Peer, ASDisplayNode, ContextGesture?) -> Void) {
         self.context = context
         self.membersContext = membersContext
         self.addMemberAction = addMemberAction
         self.action = action
+        self.contextAction = contextAction
         
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.listNode = ListView()
@@ -271,11 +277,12 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
             entries.append(.member(theme: presentationData.theme, index: entries.count, member: member))
         }
         
+        let contextAction = self.contextAction
         let transaction = preparedTransition(from: self.currentEntries, to: entries, context: self.context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: { [weak self] in
             self?.addMemberAction()
         }, action: { [weak self] member, action in
             self?.action(member, action)
-        })
+        }, contextAction: contextAction)
         self.enclosingPeer = enclosingPeer
         self.currentEntries = entries
         self.enqueuedTransactions.append(transaction)

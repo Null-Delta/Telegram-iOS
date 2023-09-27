@@ -408,7 +408,7 @@ private final class PeerInfoPendingPane {
                     openAddMemberAction()
                 }, action: { member, action in
                     requestPerformPeerMemberAction(member, action)
-                })
+                }, contextAction: openPeerContextAction)
             } else {
                 preconditionFailure()
             }
