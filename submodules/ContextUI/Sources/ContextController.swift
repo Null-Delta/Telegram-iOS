@@ -45,6 +45,7 @@ public enum ContextMenuActionItemTextColor {
 
 public enum ContextMenuActionResult {
     case `default`
+    case justDismiss
     case dismissWithoutContent
     /// Temporary
     static var safeStreamRecordingDismissWithoutContent: ContextMenuActionResult { .dismissWithoutContent }
@@ -593,7 +594,7 @@ public final class ContextControllerNode: ViewControllerTracingNode, UIScrollVie
             return
         }
         self.dismissedForCancel?()
-        self.beginDismiss(.default)
+        self.beginDismiss(.justDismiss)
     }
     
     @available(iOS 13.0, *)
@@ -952,8 +953,12 @@ public final class ContextControllerNode: ViewControllerTracingNode, UIScrollVie
         
         contextScale = previousContextScale
 
-        animationOutController.animate(in: self, source: source, result: initialResult, completion: completion)
-        
+        if case .justDismiss = initialResult {
+            animationOutController.animate(in: self, source: source, result: initialResult, completion: completion)
+        } else {
+            let controller = DefaultContextAnimationOutController(needAddShapshot: false)
+            controller.animate(in: self, source: source, result: initialResult, completion: completion)
+        }
     }
     
     func addRelativeContentOffset(_ offset: CGPoint, transition: ContainedViewLayoutTransition) {

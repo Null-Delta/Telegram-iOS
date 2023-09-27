@@ -135,6 +135,8 @@ public class DefaultContextAnimationInController: ContextAnimationInControllerPr
 }
 
 public class DefaultContextAnimationOutController: ContextAnimationOutControllerProtocol {
+    private var needAddShapshot: Bool = true
+
     public func animate(in controller: ContextControllerNode, source: ContextContentSource, result initialResult: ContextMenuActionResult, completion: @escaping () -> Void) {
         
         var transitionDuration: Double = 0.2
@@ -183,7 +185,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             
             let animateOutToItem: Bool
             switch result {
-            case .default, .custom:
+            case .default, .custom, .justDismiss:
                 animateOutToItem = true
             case .dismissWithoutContent:
                 animateOutToItem = false
@@ -245,7 +247,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             
             let animateOutToItem: Bool
             switch result {
-            case .default, .custom:
+            case .default, .custom, .justDismiss:
                 animateOutToItem = true
             case .dismissWithoutContent:
                 animateOutToItem = false
@@ -308,7 +310,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             let intermediateCompletion: () -> Void = { [weak self, weak contentParentNode] in
                 if completedEffect && completedContentNode && completedActionsNode {
                     switch result {
-                    case .default, .custom:
+                    case .default, .custom, .justDismiss:
                         if let contentParentNode = contentParentNode {
                             contentParentNode.addSubnode(contentParentNode.contentNode)
                             contentParentNode.isExtractedToContextPreview = false
@@ -371,7 +373,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             
             let animateOutToItem: Bool
             switch result {
-            case .default, .custom:
+            case .default, .custom, .justDismiss:
                 animateOutToItem = true
             case .dismissWithoutContent:
                 animateOutToItem = false
@@ -464,7 +466,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             let intermediateCompletion: () -> Void = {
                 if completedEffect && completedContentNode && completedActionsNode {
                     switch result {
-                    case .default, .custom:
+                    case .default, .custom, .justDismiss:
                         break
                     case .dismissWithoutContent:
                         break
@@ -523,7 +525,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
             
             let animateOutToItem: Bool
             switch result {
-            case .default, .custom:
+            case .default, .custom, .justDismiss:
                 animateOutToItem = true
             case .dismissWithoutContent:
                 animateOutToItem = false
@@ -546,7 +548,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
                     controller.sourceView.isHidden = false
                 }
                 
-                if let snapshotView = controller.view.snapshotContentTree(keepTransform: true) {
+                if let snapshotView = controller.view.snapshotContentTree(keepTransform: true), needAddShapshot {
                     self.contentContainerNode.view.addSubview(snapshotView)
                 }
                 
@@ -559,5 +561,7 @@ public class DefaultContextAnimationOutController: ContextAnimationOutController
         }
     }
     
-    public init() { }
+    public init(needAddShapshot: Bool = true) {
+        self.needAddShapshot = needAddShapshot
+    }
 }

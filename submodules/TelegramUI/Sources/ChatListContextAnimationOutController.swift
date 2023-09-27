@@ -84,7 +84,7 @@ public class ChatListContextAnimationOutController: ContextAnimationOutControlle
         let intermediateCompletion: (Bool) -> Void = {
             if $0 {
                 switch result {
-                case .default, .custom:
+                case .default, .custom, .justDismiss:
                     break
                 case .dismissWithoutContent:
                     break
@@ -232,7 +232,7 @@ public class ChatListContextAnimationOutController: ContextAnimationOutControlle
         let intermediateCompletion: (Bool) -> Void = {
             if $0 {
                 switch result {
-                case .default, .custom:
+                case .default, .custom, .justDismiss:
                     break
                 case .dismissWithoutContent:
                     break
@@ -391,7 +391,7 @@ public class ChatListContextAnimationOutController: ContextAnimationOutControlle
         let intermediateCompletion: (Bool) -> Void = {
             if $0 {
                 switch result {
-                case .default, .custom:
+                case .default, .custom, .justDismiss:
                     break
                 case .dismissWithoutContent:
                     break
