@@ -318,7 +318,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
                         
                         filters = defaultAvailableSearchPanes(isForum: isForum, hasDownloads: !isForum && strongSelf.hasDownloads).map(\.filter)
                     }
-                    strongSelf.filterContainerNode.update(size: CGSize(width: layout.size.width - 40.0, height: 38.0), sideInset: layout.safeInsets.left - 20.0, filters: filters.map { .filter($0) }, selectedFilter: strongSelf.selectedFilter?.id, transitionFraction: strongSelf.transitionFraction, presentationData: strongSelf.presentationData, transition: transition)
+                    strongSelf.filterContainerNode.update(size: CGSize(width: layout.size.width, height: 38.0), sideInset: 0, filters: filters.map { .filter($0) }, selectedFilter: strongSelf.selectedFilter?.id, transitionFraction: strongSelf.transitionFraction, presentationData: strongSelf.presentationData, transition: transition)
                 }
             }
         }
@@ -675,7 +675,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         let topInset = navigationBarHeight
         
         transition.updateFrame(node: self.dimNode, frame: CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: layout.size.height - topInset)))
-        transition.updateFrame(node: self.filterContainerNode, frame: CGRect(origin: CGPoint(x: 0.0, y: navigationBarHeight + 6.0), size: CGSize(width: layout.size.width, height: 38.0)))
+        transition.updateFrame(node: self.filterContainerNode, frame: CGRect(origin: CGPoint(x: 0, y: navigationBarHeight + 6.0), size: CGSize(width: layout.size.width, height: 38.0)))
         
         var isForum = false
         if case .forum = self.location {
@@ -690,7 +690,7 @@ public final class ChatListSearchContainerNode: SearchDisplayControllerContentNo
         }
         
         let overflowInset: CGFloat = 20.0
-        self.filterContainerNode.update(size: CGSize(width: layout.size.width - overflowInset * 2.0, height: 38.0), sideInset: layout.safeInsets.left - overflowInset, filters: filters.map { .filter($0) }, selectedFilter: self.selectedFilter?.id, transitionFraction: self.transitionFraction, presentationData: self.presentationData, transition: .animated(duration: 0.4, curve: .spring))
+        self.filterContainerNode.update(size: CGSize(width: layout.size.width, height: 38.0), sideInset: -overflowInset, filters: filters.map { .filter($0) }, selectedFilter: self.selectedFilter?.id, transitionFraction: self.transitionFraction, presentationData: self.presentationData, transition: .animated(duration: 0.4, curve: .spring))
         
         if isFirstTime {
             self.filterContainerNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)

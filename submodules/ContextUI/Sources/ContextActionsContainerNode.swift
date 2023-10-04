@@ -713,7 +713,7 @@ final class InnerTextSelectionTipContainerNode: ASDisplayNode {
     }
 }
 
-final class ContextActionsContainerNode: ASDisplayNode {
+public final class ContextActionsContainerNode: ASDisplayNode {
     private let presentationData: PresentationData
     private let getController: () -> ContextControllerProtocol?
     private let blurBackground: Bool

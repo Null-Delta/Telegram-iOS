@@ -234,7 +234,9 @@ private enum PeersNearbyEntry: ItemListNodeEntry {
                     if !isSelfPeer {
                         arguments.openProfile(peer.peer, peer.distance)
                     }
-                }, setPeerIdWithRevealedOptions: { _, _ in }, removePeer: { _ in }, toggleUpdated: nil, contextAction: nil, hasTopGroupInset: false, tag: nil)
+                }, setPeerIdWithRevealedOptions: { _, _ in }, removePeer: { _ in }, toggleUpdated: nil, contextAction: { node, gesture in
+                    arguments.contextAction(peer.peer, node, gesture)
+                }, hasTopGroupInset: false, tag: nil)
             case let .expand(theme, title):
                 return ItemListPeerActionItem(presentationData: presentationData, icon: PresentationResourcesItemList.downArrowImage(theme), title: title, sectionId: self.section, editing: false, action: {
                     arguments.expandUsers()
@@ -491,6 +493,8 @@ public func peersNearbyController(context: AccountContext) -> ViewController {
         let contextController = ContextController(account: context.account, presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: peerNearbyContextMenuItems(context: context, peerId: peer.id, present: { c in
             presentControllerImpl?(c, nil)
         }) |> map { ContextController.Items(content: .list($0), animationCache: nil) }, gesture: gesture)
+        contextController.selectAnimationControllersFromSource()
+        
         presentInGlobalOverlayImpl?(contextController)
     }, expandUsers: {
         expandedPromise.set(true)

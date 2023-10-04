@@ -129,8 +129,18 @@ public class ContactsController: ViewController {
     
     private let sortButton: SortHeaderButton
     
-    public init(context: AccountContext) {
+    private var animationInController: ContextAnimationInControllerProtocol
+    private var animationOutController: ContextAnimationOutControllerProtocol
+    
+    public init(
+        context: AccountContext,
+        animationInController: ContextAnimationInControllerProtocol = DefaultContextAnimationInController(),
+        animationOutController: ContextAnimationOutControllerProtocol = DefaultContextAnimationOutController()
+    ) {
         self.context = context
+        
+        self.animationInController = animationInController
+        self.animationOutController = animationOutController
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
@@ -262,7 +272,7 @@ public class ContactsController: ViewController {
         }
         self.displayNode = ContactsControllerNode(context: self.context, sortOrder: sortOrderSignal |> distinctUntilChanged, present: { [weak self] c, a in
             self?.present(c, in: .window(.root), with: a)
-        }, controller: self)
+        }, controller: self, animationInController: self.animationInController, animationOutController: self.animationOutController)
         self._ready.set(combineLatest(queue: .mainQueue(),
             self.contactsNode.contactListNode.ready,
             self.contactsNode.storiesReady.get()

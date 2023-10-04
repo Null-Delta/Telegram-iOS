@@ -3654,7 +3654,8 @@ private final class StorageUsageListContextGalleryContentSourceImpl: ContextCont
     let controller: ViewController
     weak var sourceView: UIView?
     let sourceRect: CGRect
-    
+    var sourceNode: ASDisplayNode? = nil
+
     let navigationController: NavigationController? = nil
     
     let passthroughTouches: Bool

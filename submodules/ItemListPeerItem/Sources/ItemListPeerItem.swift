@@ -319,7 +319,7 @@ public struct ItemListPeerItemShimmering {
 }
 
 public final class ItemListPeerItem: ListViewItem, ItemListItem {
-    let presentationData: ItemListPresentationData
+    public let presentationData: ItemListPresentationData
     let dateTimeFormat: PresentationDateTimeFormat
     let nameDisplayOrder: PresentationPersonNameOrder
     let context: AccountContext
@@ -459,9 +459,9 @@ public final class ItemListPeerItem: ListViewItem, ItemListItem {
 private let badgeFont = Font.regular(15.0)
 
 public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNode {
-    private let backgroundNode: ASDisplayNode
+    public let backgroundNode: ASDisplayNode
     private let topStripeNode: ASDisplayNode
-    private let bottomStripeNode: ASDisplayNode
+    public let bottomStripeNode: ASDisplayNode
     private let highlightedBackgroundNode: ASDisplayNode
     private var disabledOverlayNode: ASDisplayNode?
     private let maskNode: ASImageNode
@@ -471,13 +471,13 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
         return self.containerNode
     }
     
-    fileprivate let avatarNode: AvatarNode
+    public let avatarNode: AvatarNode
     private var avatarIconComponent: EmojiStatusComponent?
     private var avatarIconView: ComponentView<Empty>?
     
     private var avatarButton: HighlightTrackingButton?
     
-    private let titleNode: TextNode
+    public let titleNode: TextNode
     private let labelNode: TextNode
     private let labelBadgeNode: ASImageNode
     private var labelArrowNode: ASImageNode?
@@ -492,10 +492,12 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
     private var absoluteLocation: (CGRect, CGSize)?
     
     private var peerPresenceManager: PeerPresenceStatusManager?
-    private var layoutParams: (ItemListPeerItem, ListViewItemLayoutParams, ItemListNeighbors, Bool)?
+    public var layoutParams: (ItemListPeerItem, ListViewItemLayoutParams, ItemListNeighbors, Bool)?
     
     private var editableControlNode: ItemListEditableControlNode?
     private var reorderControlNode: ItemListEditableReorderControlNode?
+    
+    public var duplicateNode: ItemListPeerItemNode? = nil
     
     override public var visibility: ListViewItemNodeVisibility {
         didSet {
@@ -553,7 +555,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
     
     public init() {
         self.backgroundNode = ASDisplayNode()
-        self.backgroundNode.isLayerBacked = true
+        self.backgroundNode.isLayerBacked = false
         
         self.topStripeNode = ASDisplayNode()
         self.topStripeNode.isLayerBacked = true
@@ -565,9 +567,12 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
         self.maskNode.isUserInteractionEnabled = false
         
         self.containerNode = ContextControllerSourceNode()
+        self.containerNode.needAnimateShadow = true
+        self.containerNode.scaleAnimationBySideProvider = { side in
+            max(0.7, (side + 12.0) / side)
+        }
         
         self.avatarNode = AvatarNode(font: avatarPlaceholderFont(size: floor(40.0 * 16.0 / 37.0)))
-        //self.avatarNode.isLayerBacked = !smartInvertColorsEnabled()
         
         self.titleNode = TextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -594,13 +599,64 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
         
         super.init(layerBacked: false, dynamicBounce: false, rotated: false, seeThrough: false)
         
+        self.containerNode.shouldBegin = { [weak self] _ in
+            self?.highlightedBackgroundNode.backgroundColor = .clear
+            self?.containerNode.targetNodeForActivationProgress = self
+
+            return true
+        }
+        
+        self.containerNode.onAnimationStart = { [weak self] in
+            guard let strongSelf = self, let layoutParams = strongSelf.layoutParams else { return }
+            
+            strongSelf.bottomStripeNode.alpha = 0
+            
+            strongSelf.duplicateNode?.removeFromSupernode()
+            strongSelf.duplicateNode = nil
+            
+            strongSelf.duplicateNode = ItemListPeerItemNode()
+            strongSelf.duplicateNode?.layoutParams = layoutParams
+            strongSelf.duplicateNode?.layoutForParams(
+                .init(
+                    width: layoutParams.1.width,
+                    leftInset: layoutParams.1.leftInset,
+                    rightInset: layoutParams.1.rightInset,
+                    availableHeight: layoutParams.1.availableHeight,
+                    ignoreHeader: true
+                ),
+                item: layoutParams.0,
+                previousItem: nil,
+                nextItem: nil
+            )
+            
+            
+            let (_, apply) = strongSelf.duplicateNode!.asyncLayout()(
+                layoutParams.0,
+                layoutParams.1,
+                layoutParams.2,
+                layoutParams.3
+            )
+            apply(false, false)
+
+            strongSelf.duplicateNode?.isUserInteractionEnabled = false
+            strongSelf.duplicateNode?.alpha = 0
+
+            strongSelf.addSubnode(strongSelf.duplicateNode!)
+
+            strongSelf.duplicateNode?.backgroundNode.backgroundColor = strongSelf.backgroundNode.backgroundColor            
+            strongSelf.touchesToOtherItemsPrevented()
+        }
+        
         self.isAccessibilityElement = true
         
         self.addSubnode(self.containerNode)
+        self.containerNode.addSubnode(backgroundNode)
         self.containerNode.addSubnode(self.avatarNode)
         self.containerNode.addSubnode(self.titleNode)
         self.containerNode.addSubnode(self.statusNode)
         self.containerNode.addSubnode(self.labelNode)
+        
+        self.backgroundNode.addSubnode(highlightedBackgroundNode)
         
         self.peerPresenceManager = PeerPresenceStatusManager(update: { [weak self] in
             if let strongSelf = self, let layoutParams = strongSelf.layoutParams {
@@ -614,7 +670,12 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                 gesture.cancel()
                 return
             }
-            contextAction(strongSelf.containerNode, gesture)
+            contextAction(strongSelf, gesture)
+        }
+        
+        self.containerNode.cancelled = { [weak self] _, _ in
+            self?.bottomStripeNode.alpha = 1
+            self?.bottomStripeNode.layer.animateAlpha(from: 0, to: 1, duration: 0.2)
         }
     }
     

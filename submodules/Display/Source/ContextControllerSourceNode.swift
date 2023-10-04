@@ -14,9 +14,23 @@ open class ContextControllerSourceNode: ContextReferenceContentNode {
             self.contextGesture?.beginDelay = self.beginDelay
         }
     }
+    
+    public var duration: Double = 0.2 {
+        didSet {
+            self.contextGesture?.duration = self.duration
+        }
+    }
+    
     public var animateScale: Bool = true
+    public var scaleAnimationBySideProvider: ((CGFloat) -> (CGFloat)) = { side in
+        max(0.7, (side - 15.0) / side)
+    }
+    public var onAnimationStart: (() -> ())?
+    
+    public var needAnimateShadow: Bool = false
     
     public var activated: ((ContextGesture, CGPoint) -> Void)?
+    public var cancelled: ((ContextGesture, CGPoint) -> Void)?
     public var shouldBegin: ((CGPoint) -> Bool)?
     public var customActivationProgress: ((CGFloat, ContextGestureTransition) -> Void)?
     public weak var additionalActivationProgressLayer: CALayer?
@@ -38,6 +52,9 @@ open class ContextControllerSourceNode: ContextReferenceContentNode {
         
         contextGesture.beginDelay = self.beginDelay
         contextGesture.isEnabled = self.isGestureEnabled
+        contextGesture.onAnimationStart = { [weak self] in
+            self?.onAnimationStart?()
+        }
         
         contextGesture.shouldBegin = { [weak self] point in
             guard let strongSelf = self, !strongSelf.bounds.width.isZero else {
@@ -67,8 +84,11 @@ open class ContextControllerSourceNode: ContextReferenceContentNode {
                     targetContentRect = CGRect(origin: CGPoint(), size: targetNode.bounds.size)
                 }
                 
+                //let viewIndex = targetNode.view.superview!.subviews.firstIndex(of: targetNode.view)
+                targetNode.view.superview!.bringSubviewToFront(targetNode.view)
+
                 let scaleSide = targetContentRect.width
-                let minScale: CGFloat = max(0.7, (scaleSide - 15.0) / scaleSide)
+                let minScale: CGFloat = strongSelf.scaleAnimationBySideProvider(scaleSide)
                 let currentScale = 1.0 * (1.0 - progress) + minScale * progress
                 
                 let originalCenterOffsetX: CGFloat = targetNode.bounds.width / 2.0 - targetContentRect.midX
@@ -87,19 +107,69 @@ open class ContextControllerSourceNode: ContextReferenceContentNode {
                     if let additionalActivationProgressLayer = strongSelf.additionalActivationProgressLayer {
                         additionalActivationProgressLayer.transform = sublayerTransform
                     }
+                    
+                    if strongSelf.needAnimateShadow {
+                        targetNode.layer.shadowRadius = progress * 6
+                        targetNode.layer.shadowColor = UIColor.black.cgColor
+                        targetNode.layer.shadowOpacity = Float(progress) * 0.1
+                        targetNode.layer.shadowOffset = .zero
+                    }
+                    
                 case .begin:
                     let sublayerTransform = CATransform3DTranslate(CATransform3DScale(CATransform3DIdentity, currentScale, currentScale, 1.0), scaleMidX, scaleMidY, 0.0)
                     targetNode.layer.sublayerTransform = sublayerTransform
                     if let additionalActivationProgressLayer = strongSelf.additionalActivationProgressLayer {
                         additionalActivationProgressLayer.transform = sublayerTransform
                     }
+                    
+                    if strongSelf.needAnimateShadow {
+                        targetNode.layer.shadowRadius = progress * 6
+                        targetNode.layer.shadowColor = UIColor.black.cgColor
+                        targetNode.layer.shadowOpacity = Float(progress) * 0.15
+                        targetNode.layer.shadowOffset = .zero
+                    }
+                    
                 case .ended:
+                    if let gesture = strongSelf.contextGesture, progress == 0.0 {
+                        strongSelf.cancelled?(gesture, .zero)
+                    }
+                    
+//                    let superview = targetNode.view.superview!
+//                    targetNode.view.removeFromSuperview()
+//                    superview.insertSubview(targetNode.view, at: viewIndex ?? 0)
+                    
                     let sublayerTransform = CATransform3DTranslate(CATransform3DScale(CATransform3DIdentity, currentScale, currentScale, 1.0), scaleMidX, scaleMidY, 0.0)
                     let previousTransform = targetNode.layer.sublayerTransform
                     targetNode.layer.sublayerTransform = sublayerTransform
                     
-                    targetNode.layer.animate(from: NSValue(caTransform3D: previousTransform), to: NSValue(caTransform3D: sublayerTransform), keyPath: "sublayerTransform", timingFunction: CAMediaTimingFunctionName.easeOut.rawValue, duration: 0.2)
+                    targetNode.layer.animate(
+                        from: NSValue(caTransform3D: previousTransform),
+                        to: NSValue(caTransform3D: sublayerTransform),
+                        keyPath: "sublayerTransform",
+                        timingFunction: CAMediaTimingFunctionName.easeOut.rawValue,
+                        duration: 0.2
+                    )
                     
+                    if strongSelf.needAnimateShadow {
+                        targetNode.layer.animate(
+                            from: targetNode.layer.shadowOpacity as NSNumber,
+                            to: 0 as NSNumber,
+                            keyPath: "shadowOpacity",
+                            timingFunction: CAMediaTimingFunctionName.easeOut.rawValue,
+                            duration: 0.2
+                        )
+                        
+                        targetNode.layer.animate(
+                            from: targetNode.layer.shadowRadius as NSNumber,
+                            to: 0 as NSNumber,
+                            keyPath: "shadowRadius",
+                            timingFunction: CAMediaTimingFunctionName.easeOut.rawValue,
+                            duration: 0.2
+                        )
+                        
+                        targetNode.layer.shadowOpacity = 0
+                    }
+
                     if let additionalActivationProgressLayer = strongSelf.additionalActivationProgressLayer {
                         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.2, execute: {
                             additionalActivationProgressLayer.transform = sublayerTransform

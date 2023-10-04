@@ -4,12 +4,14 @@ import AsyncDisplayKit
 public final class ContextContentContainerNode: ASDisplayNode {
     public var contentNode: ContextContentNode?
     
+    public var isLayoutLocked: Bool = false
+    
     override public init() {
         super.init()
     }
     
     public func updateLayout(size: CGSize, scaledSize: CGSize, transition: ContainedViewLayoutTransition) {
-        guard let contentNode = self.contentNode else {
+        guard let contentNode = self.contentNode, !isLayoutLocked else {
             return
         }
         switch contentNode {

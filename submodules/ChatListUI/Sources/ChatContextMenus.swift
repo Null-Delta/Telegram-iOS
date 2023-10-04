@@ -42,7 +42,7 @@ func archiveContextMenuItems(context: AccountContext, groupId: PeerGroupId, chat
         let isPinned = !settings.isHiddenByDefault
         items.append(.action(ContextMenuActionItem(text: isPinned ? strings.ChatList_Context_HideArchive : strings.ChatList_Context_UnhideArchive, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: isPinned ? "Chat/Context Menu/Unpin": "Chat/Context Menu/Pin"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
             chatListController?.toggleArchivedFolderHiddenByDefault()
-            f(.default)
+            f(.destructive(hideMainNode: false))
         })))
         
         return items
@@ -127,7 +127,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                             items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_RemoveFromRecents, textColor: .destructive, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Clear"), color: theme.contextMenu.destructiveColor) }, action: { _, f in
                                 let _ = (context.engine.peers.removeRecentlySearchedPeer(peerId: peerId)
                                 |> deliverOnMainQueue).start(completed: {
-                                    f(.default)
+                                    f(.destructive(hideMainNode: false))
                                 })
                             })))
                             items.append(.separator)
@@ -158,7 +158,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                                         chatListController.present(c, in: .window(.root), with: a)
                                     }
                                 })
-                                f(.default)
+                                f(.destructive(hideMainNode: false))
                             })))
                             items.append(.separator)
                         }
@@ -195,7 +195,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                     var hasRemoveFromFolder = false
                     if case let .chatList(currentFilter) = source {
                         if let currentFilter = currentFilter, case let .filter(id, title, emoticon, data) = currentFilter {
-                            items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_RemoveFromFolder, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/RemoveFromFolder"), color: theme.contextMenu.primaryColor) }, action: { c, _ in
+                            items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_RemoveFromFolder, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/RemoveFromFolder"), color: theme.contextMenu.primaryColor) }, action: { _, f in
                                 let _ = (context.engine.peers.updateChatListFiltersInteractively { filters in
                                     var filters = filters
                                     for i in 0 ..< filters.count {
@@ -209,11 +209,12 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                                     return filters
                                 }
                                 |> deliverOnMainQueue).start(completed: {
-                                    c.dismiss(completion: {
+                                    f(.destructive(hideMainNode: true))
+//                                    c.dismiss(completion: {
                                         chatListController?.present(UndoOverlayController(presentationData: presentationData, content: .chatRemovedFromFolder(chatTitle: peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), folderTitle: title), elevatedLayout: false, animateInAsReplacement: true, action: { _ in
                                             return false
                                         }), in: .current)
-                                    })
+//                                    })
                                 })
                             })))
                             hasRemoveFromFolder = true
@@ -377,7 +378,7 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                                 |> deliverOnMainQueue).start(next: { result in
                                     switch result {
                                     case .done:
-                                        f(.default)
+                                        f(.destructive(hideMainNode: false))
                                     case let .limitExceeded(count, _):
                                         f(.default)
                                         

@@ -1067,7 +1067,7 @@ private extension ChatListFilter {
     }
 }
 
-func chatListFilterPresetController(context: AccountContext, currentPreset initialPreset: ChatListFilter?, updated: @escaping ([ChatListFilter]) -> Void) -> ViewController {
+func chatListFilterPresetController(context: AccountContext, currentPreset initialPreset: ChatListFilter?, updated: @escaping ([ChatListFilter]) -> Void, animationInController: ContextAnimationInControllerProtocol = DefaultContextAnimationInController(), animationOutController: ContextAnimationOutControllerProtocol = DefaultContextAnimationOutController()) -> ViewController {
     let initialName: String
     if let initialPreset {
         initialName = initialPreset.title
@@ -1589,7 +1589,8 @@ func chatListFilterPresetController(context: AccountContext, currentPreset initi
                 })
             })))
             
-            let contextController = ContextController(account: context.account, presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = ContextController(account: context.account, presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture, animationInController: animationInController, animationOutController: animationOutController)
+            contextController.selectAnimationControllersFromSource()
             presentInGlobalOverlayImpl?(contextController)
         }
     )

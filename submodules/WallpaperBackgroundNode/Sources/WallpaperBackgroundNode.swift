@@ -290,6 +290,7 @@ private final class EffectImageLayer: SimpleLayer, GradientBackgroundPatternOver
     
     private func updateContents() {
         var contents: UIImage?
+        self.contentsGravity = .resizeAspectFill
         
         if self.isUsingSoftlight {
             contents = self.patternContentImage
@@ -323,7 +324,7 @@ private final class EffectImageLayer: SimpleLayer, GradientBackgroundPatternOver
     }
 }
 
-final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode {
+public final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode {
     final class BubbleBackgroundNodeImpl: ASDisplayNode, WallpaperBubbleBackgroundNode {
         var implicitContentUpdate: Bool = true
         
@@ -747,6 +748,8 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
     private var isGeneratingPatternImage: Bool = false
 
     private let bakedBackgroundView: UIImageView
+    
+    public var isLayoutBlocked: Bool = false
 
     private var validLayout: (CGSize, WallpaperDisplayMode)?
     private var wallpaper: TelegramWallpaper?
@@ -813,7 +816,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         }
     }
     
-    var rotation: CGFloat = 0.0 {
+    public var rotation: CGFloat = 0.0 {
         didSet {
             var fromValue: CGFloat = 0.0
             if let value = (self.layer.value(forKeyPath: "transform.rotation.z") as? NSNumber)?.floatValue {
@@ -846,7 +849,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
     private static var cachedSharedPattern: (PatternKey, UIImage)?
     
     private let _isReady = ValuePromise<Bool>(false, ignoreRepeated: true)
-    var isReady: Signal<Bool, NoError> {
+    public var isReady: Signal<Bool, NoError> {
         return self._isReady.get()
     }
         
@@ -924,7 +927,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         self.dimLayer.opacity = dimAlpha
     }
 
-    func update(wallpaper: TelegramWallpaper) {
+    public func update(wallpaper: TelegramWallpaper) {
         if self.wallpaper == wallpaper {
             return
         }
@@ -1068,7 +1071,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         self.updateDimming()
     }
 
-    func _internalUpdateIsSettingUpWallpaper() {
+    public func _internalUpdateIsSettingUpWallpaper() {
         self.isSettingUpWallpaper = true
     }
 
@@ -1295,7 +1298,9 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         transition.updateFrame(layer: self.patternImageLayer, frame: CGRect(origin: CGPoint(), size: size))
     }
     
-    func updateLayout(size: CGSize, displayMode: WallpaperDisplayMode, transition: ContainedViewLayoutTransition) {
+    public func updateLayout(size: CGSize, displayMode: WallpaperDisplayMode, transition: ContainedViewLayoutTransition) {
+        guard !isLayoutBlocked else { return }
+        
         let isFirstLayout = self.validLayout == nil
         self.validLayout = (size, displayMode)
         
@@ -1351,7 +1356,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
     private var isAnimating = false
     private var isLooping = false
     
-    func animateEvent(transition: ContainedViewLayoutTransition, extendAnimation: Bool) {
+    public func animateEvent(transition: ContainedViewLayoutTransition, extendAnimation: Bool) {
         guard !(self.isLooping && self.isAnimating) else {
             return
         }
@@ -1367,7 +1372,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         self.outgoingBubbleGradientBackgroundNode?.animateEvent(transition: transition, extendAnimation: extendAnimation, backwards: false, completion: {})
     }
 
-    func updateIsLooping(_ isLooping: Bool) {
+    public func updateIsLooping(_ isLooping: Bool) {
         let wasLooping = self.isLooping
         self.isLooping = isLooping
         
@@ -1376,7 +1381,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         }
     }
     
-    func updateBubbleTheme(bubbleTheme: PresentationTheme, bubbleCorners: PresentationChatBubbleCorners) {
+    public func updateBubbleTheme(bubbleTheme: PresentationTheme, bubbleCorners: PresentationChatBubbleCorners) {
         if self.bubbleTheme !== bubbleTheme || self.bubbleCorners != bubbleCorners {
             self.bubbleTheme = bubbleTheme
             self.bubbleCorners = bubbleCorners
@@ -1424,7 +1429,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         }
     }
 
-    func hasBubbleBackground(for type: WallpaperBubbleType) -> Bool {
+    public func hasBubbleBackground(for type: WallpaperBubbleType) -> Bool {
         guard let bubbleTheme = self.bubbleTheme, let bubbleCorners = self.bubbleCorners else {
             return false
         }
@@ -1469,7 +1474,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         return false
     }
 
-    func makeBubbleBackground(for type: WallpaperBubbleType) -> WallpaperBubbleBackgroundNode? {
+    public func makeBubbleBackground(for type: WallpaperBubbleType) -> WallpaperBubbleBackgroundNode? {
         if !self.hasBubbleBackground(for: type) {
             return nil
         }
@@ -1500,7 +1505,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         #endif
     }
     
-    func makeFreeBackground() -> PortalView? {
+    public func makeFreeBackground() -> PortalView? {
         if !self.hasBubbleBackground(for: .free) {
             return nil
         }
@@ -1513,7 +1518,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         }
     }
     
-    func hasExtraBubbleBackground() -> Bool {
+    public func hasExtraBubbleBackground() -> Bool {
         var isInvertedGradient = false
         switch self.wallpaper {
         case let .file(file):
@@ -1526,7 +1531,7 @@ final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgroundNode 
         return isInvertedGradient
     }
     
-    func makeDimmedNode() -> ASDisplayNode? {
+    public func makeDimmedNode() -> ASDisplayNode? {
         if let gradientBackgroundNode = self.gradientBackgroundNode {
             return GradientBackgroundNode.CloneNode(parentNode: gradientBackgroundNode)
         } else {

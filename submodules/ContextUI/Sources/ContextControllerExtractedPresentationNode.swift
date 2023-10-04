@@ -1071,7 +1071,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             let duration: Double
             let timingFunction: String
             switch result {
-            case .default, .dismissWithoutContent:
+            case .default, .dismissWithoutContent, .destructive:
                 duration = self.reactionContextNodeIsAnimatingOut ? 0.25 : 0.2
                 timingFunction = CAMediaTimingFunctionName.easeInEaseOut.rawValue
             case let .custom(customTransition):
@@ -1130,7 +1130,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             let animationInContentYDistance: CGFloat
             
             switch result {
-            case .default, .custom:
+            case .default, .custom, .destructive:
                 animationInContentYDistance = currentContentLocalFrame.minY - currentContentScreenFrame.minY
             case .dismissWithoutContent:
                 animationInContentYDistance = 0.0

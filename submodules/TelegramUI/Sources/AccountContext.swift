@@ -656,7 +656,7 @@ public final class AccountContextImpl: AccountContext {
                         }
                     } else if let strongSelf = self {
                         strongSelf.sharedContext.mainWindow?.present(textAlertController(context: strongSelf, title: presentationData.strings.Call_CallInProgressTitle, text: presentationData.strings.Call_ExternalCallInProgressMessage, actions: [TextAlertAction(type: .genericAction, title: presentationData.strings.Common_OK, action: {
-                        })]), on: .root)
+                        })]), on: .update)
                     }
                 })
             }

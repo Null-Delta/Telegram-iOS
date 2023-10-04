@@ -26,6 +26,7 @@ import TextNodeWithEntities
 import ComponentFlow
 import EmojiStatusComponent
 import AvatarVideoNode
+import ChatListHeaderComponent
 
 public enum ChatListItemContent {
     public struct ThreadInfo: Equatable {
@@ -177,7 +178,7 @@ public enum ChatListItemContent {
 }
 
 public class ChatListItem: ListViewItem, ChatListSearchItemNeighbour {
-    let presentationData: ChatListPresentationData
+    public let presentationData: ChatListPresentationData
     let context: AccountContext
     let chatListLocation: ChatListControllerLocation
     let filterData: ChatListItemFilterData?
@@ -256,6 +257,8 @@ public class ChatListItem: ListViewItem, ChatListSearchItemNeighbour {
             if let nodeValue = node() as? ChatListItemNode {
                 nodeValue.setupItem(item: self, synchronousLoads: false)
                 let layout = nodeValue.asyncLayout()
+                let layout2 = nodeValue.dublicateNode?.asyncLayout()
+                print(nodeValue, nodeValue.dublicateNode == nil, nodeValue.view.frame.origin.y)
                 async {
                     let (first, last, firstWithHeader, nextIsPinned) = ChatListItem.mergeType(item: self, previousItem: previousItem, nextItem: nextItem)
                     var animated = true
@@ -264,9 +267,11 @@ public class ChatListItem: ListViewItem, ChatListSearchItemNeighbour {
                     }
                     
                     let (nodeLayout, apply) = layout(self, params, first, last, firstWithHeader, nextIsPinned)
+                    let dublicateApply = layout2?(self, params, first, last, firstWithHeader, nextIsPinned)
                     Queue.mainQueue().async {
-                        completion(nodeLayout, { _ in
+                        completion(nodeLayout, { value in
                             apply(false, animated)
+                            dublicateApply?.1(false, animated)
                         })
                     }
                 }
@@ -671,7 +676,7 @@ private final class ChatListMediaPreviewNode: ASDisplayNode {
 
 private let loginCodeRegex = try? NSRegularExpression(pattern: "[\\d\\-]{5,7}", options: [])
 
-class ChatListItemNode: ItemListRevealOptionsItemNode {
+public class ChatListItemNode: ItemListRevealOptionsItemNode {
     final class TopicItemNode: ASDisplayNode {
         let topicTitleNode: TextNode
         let titleTopicIconView: ComponentHostView<Empty>
@@ -927,15 +932,15 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    var item: ChatListItem?
+    public var item: ChatListItem?
     
-    private let backgroundNode: ASDisplayNode
+    public let backgroundNode: ASDisplayNode
     private let highlightedBackgroundNode: ASDisplayNode
     
     let contextContainer: ContextControllerSourceNode
-    let mainContentContainerNode: ASDisplayNode
+    public let mainContentContainerNode: ASDisplayNode
     
-    let avatarContainerNode: ASDisplayNode
+    public let avatarContainerNode: ASDisplayNode
     let avatarNode: AvatarNode
     var avatarIconView: ComponentHostView<Empty>?
     var avatarIconComponent: EmojiStatusComponent?
@@ -944,7 +949,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     
     private var inlineNavigationMarkLayer: SimpleLayer?
     
-    let titleNode: TextNode
+    public let titleNode: TextNode
     let authorNode: AuthorNode
     private var compoundHighlightingNode: LinkHighlightingNode?
     private var textArrowNode: ASImageNode?
@@ -952,12 +957,12 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     let measureNode: TextNode
     private var currentItemHeight: CGFloat?
     let forwardedIconNode: ASImageNode
-    let textNode: TextNodeWithEntities
+    public let textNode: TextNodeWithEntities
     var dustNode: InvisibleInkDustNode?
     let inputActivitiesNode: ChatListInputActivitiesNode
     let dateNode: TextNode
     var dateStatusIconNode: ASImageNode?
-    let separatorNode: ASDisplayNode
+    public let separatorNode: ASDisplayNode
     let statusNode: ChatListStatusNode
     let badgeNode: ChatListBadgeNode
     let mentionBadgeNode: ChatListBadgeNode
@@ -967,7 +972,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     var avatarTimerBadge: AvatarBadgeView?
     let pinnedIconNode: ASImageNode
     var secretIconNode: ASImageNode?
-    var credibilityIconView: ComponentHostView<Empty>?
+    public var credibilityIconView: ComponentHostView<Empty>?
     var credibilityIconComponent: EmojiStatusComponent?
     let mutedIconNode: ASImageNode
     
@@ -987,7 +992,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     private var cachedChatListSearchResult: CachedChatListSearchResult?
     private var cachedCustomTextEntities: CachedCustomTextEntities?
     
-    var layoutParams: (ChatListItem, first: Bool, last: Bool, firstWithHeader: Bool, nextIsPinned: Bool, ListViewItemLayoutParams, countersSize: CGFloat)?
+    public var layoutParams: (ChatListItem, first: Bool, last: Bool, firstWithHeader: Bool, nextIsPinned: Bool, ListViewItemLayoutParams, countersSize: CGFloat)?
     
     private var isHighlighted: Bool = false
     private var skipFadeout: Bool = false
@@ -996,7 +1001,9 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
     private var onlineIsVoiceChat: Bool = false
     private var currentOnline: Bool?
     
-    override var canBeSelected: Bool {
+    public var dublicateNode: ChatListItemNode? = nil
+    
+    override public var canBeSelected: Bool {
         if self.selectableControlNode != nil || self.item?.editing == true {
             return false
         } else {
@@ -1004,26 +1011,26 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override var defaultAccessibilityLabel: String? {
+    override public var defaultAccessibilityLabel: String? {
         get {
             return self.accessibilityLabel
         } set(value) {
         }
     }
-    override var accessibilityAttributedLabel: NSAttributedString? {
+    override public var accessibilityAttributedLabel: NSAttributedString? {
         get {
             return self.accessibilityLabel.flatMap(NSAttributedString.init(string:))
         } set(value) {
         }
     }
-    override var accessibilityAttributedValue: NSAttributedString? {
+    override public var accessibilityAttributedValue: NSAttributedString? {
         get {
             return self.accessibilityValue.flatMap(NSAttributedString.init(string:))
         } set(value) {
         }
     }
     
-    override var accessibilityLabel: String? {
+    override public var accessibilityLabel: String? {
         get {
             guard let item = self.item else {
                 return nil
@@ -1055,7 +1062,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override var accessibilityValue: String? {
+    override public var accessibilityValue: String? {
         get {
             guard let item = self.item else {
                 return nil
@@ -1123,7 +1130,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override var visibility: ListViewItemNodeVisibility {
+    override public var visibility: ListViewItemNodeVisibility {
         didSet {
             let wasVisible = self.visibilityStatus
             let isVisible: Bool
@@ -1183,7 +1190,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    required init() {
+    public required init() {
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isLayerBacked = true
         self.backgroundNode.displaysAsynchronously = false
@@ -1252,10 +1259,43 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         
         self.addSubnode(self.contextContainer)
         self.contextContainer.addSubnode(self.mainContentContainerNode)
+        self.contextContainer.needAnimateShadow = true
         
         self.avatarContainerNode.addSubnode(self.avatarNode)
         self.contextContainer.addSubnode(self.avatarContainerNode)
         self.contextContainer.addSubnode(self.onlineNode)
+        self.contextContainer.scaleAnimationBySideProvider = { side in
+            max(0.7, (side + 6.0) / side)
+        }
+        self.contextContainer.onAnimationStart = { [weak self] in
+            guard let strongSelf = self else { return }
+            
+            strongSelf.separatorNode.alpha = 0
+            strongSelf.dublicateNode?.removeFromSupernode()
+            strongSelf.dublicateNode = nil
+            strongSelf.dublicateNode = ChatListItemNode()
+            strongSelf.dublicateNode?.layoutForParams(
+                .init(
+                    width: strongSelf.layoutParams?.5.width ?? 0,
+                    leftInset: strongSelf.layoutParams?
+                        .5.leftInset ?? 0,
+                    rightInset: strongSelf.layoutParams?
+                        .5.rightInset ?? 0,
+                    availableHeight: strongSelf.layoutParams?
+                        .5.availableHeight ?? 0,
+                    ignoreHeader: true
+                ),
+                item: strongSelf.item!,
+                previousItem: nil,
+                nextItem: nil
+            )
+            strongSelf.dublicateNode?.setupItem(item: strongSelf.item!, synchronousLoads: true)
+            strongSelf.dublicateNode?.alpha = 0
+            
+            strongSelf.addSubnode(strongSelf.dublicateNode!)
+            strongSelf.dublicateNode?.isUserInteractionEnabled = false
+            strongSelf.touchesToOtherItemsPrevented()
+        }
         
         self.mainContentContainerNode.addSubnode(self.titleNode)
         self.mainContentContainerNode.addSubnode(self.authorNode)
@@ -1266,7 +1306,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.mainContentContainerNode.addSubnode(self.badgeNode)
         self.mainContentContainerNode.addSubnode(self.mentionBadgeNode)
         self.mainContentContainerNode.addSubnode(self.mutedIconNode)
-        
+                
         self.peerPresenceManager = PeerPresenceStatusManager(update: { [weak self] in
             if let strongSelf = self, let layoutParams = strongSelf.layoutParams {
                 let (_, apply) = strongSelf.asyncLayout()(layoutParams.0, layoutParams.5, layoutParams.1, layoutParams.2, layoutParams.3, layoutParams.4)
@@ -1291,23 +1331,31 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
                 strongSelf.contextContainer.targetNodeForActivationProgress = strongSelf.compoundTextButtonNode
                 strongSelf.contextContainer.additionalActivationProgressLayer = strongSelf.compoundHighlightingNode?.layer
             } else {
-                strongSelf.contextContainer.targetNodeForActivationProgress = nil
+                strongSelf.contextContainer.targetNodeForActivationProgress = strongSelf
             }
+            
+            self?.highlightedBackgroundNode.backgroundColor = .clear
             
             return true
         }
-        
+                
         self.contextContainer.activated = { [weak self] gesture, location in
             guard let strongSelf = self, let item = strongSelf.item else {
                 return
             }
+            
             var threadId: Int64?
             if let value = strongSelf.hitTest(location, with: nil), value === strongSelf.compoundTextButtonNode?.view {
                 if case let .peer(peerData) = item.content, let topicItem = peerData.topForumTopicItems.first {
                     threadId = topicItem.id
                 }
             }
-            item.interaction.activateChatPreview(item, threadId, strongSelf.contextContainer, gesture, nil)
+            item.interaction.activateChatPreview(item, threadId, strongSelf, gesture, nil)
+        }
+        
+        self.contextContainer.cancelled = { [weak self] _, _ in
+            self?.separatorNode.alpha = 1
+            self?.separatorNode.layer.animateAlpha(from: 0, to: 1, duration: 0.2)
         }
         
         self.onDidLoad { [weak self] _  in
@@ -1324,14 +1372,14 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.cachedDataDisposable.dispose()
     }
     
-    override func secondaryAction(at point: CGPoint) {
+    override public func secondaryAction(at point: CGPoint) {
         guard let item = self.item else {
             return
         }
         item.interaction.activateChatPreview(item, nil, self.contextContainer, nil, point)
     }
     
-    func setupItem(item: ChatListItem, synchronousLoads: Bool) {
+    public func setupItem(item: ChatListItem, synchronousLoads: Bool) {
         let previousItem = self.item
         self.item = item
         
@@ -1475,10 +1523,10 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.contextContainer.isGestureEnabled = enablePreview && !item.editing
     }
     
-    override func layoutForParams(_ params: ListViewItemLayoutParams, item: ListViewItem, previousItem: ListViewItem?, nextItem: ListViewItem?) {
+    override public func layoutForParams(_ params: ListViewItemLayoutParams, item: ListViewItem, previousItem: ListViewItem?, nextItem: ListViewItem?) {
         let layout = self.asyncLayout()
         let (first, last, firstWithHeader, nextIsPinned) = ChatListItem.mergeType(item: item as! ChatListItem, previousItem: previousItem, nextItem: nextItem)
-        let (nodeLayout, apply) = layout(item as! ChatListItem, params, first, last, firstWithHeader, nextIsPinned)
+        let (nodeLayout, apply) = layout(item as! ChatListItem, params, first, last, params.ignoreHeader ? false : firstWithHeader, nextIsPinned)
         apply(false, false)
         self.contentSize = nodeLayout.contentSize
         self.insets = nodeLayout.insets
@@ -1488,7 +1536,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         return UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0)
     }
     
-    override func setHighlighted(_ highlighted: Bool, at point: CGPoint, animated: Bool) {
+    override public func setHighlighted(_ highlighted: Bool, at point: CGPoint, animated: Bool) {
         super.setHighlighted(highlighted, at: point, animated: animated)
         
         self.isHighlighted = highlighted
@@ -1553,7 +1601,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override func tapped() {
+    override public func tapped() {
         guard let item = self.item, item.editing else {
             return
         }
@@ -3624,11 +3672,11 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         item.interaction.openForumThread(index.messageIndex.id.peerId, topicItem.id)
     }
     
-    override func animateInsertion(_ currentTimestamp: Double, duration: Double, short: Bool) {
+    override public func animateInsertion(_ currentTimestamp: Double, duration: Double, short: Bool) {
         self.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
     }
     
-    override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
+    override public func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.clipsToBounds = true
         if self.skipFadeout {
             self.skipFadeout = false
@@ -3655,20 +3703,20 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
         
-    override func updateRevealOffset(offset: CGFloat, transition: ContainedViewLayoutTransition) {
+    override public func updateRevealOffset(offset: CGFloat, transition: ContainedViewLayoutTransition) {
         super.updateRevealOffset(offset: offset, transition: transition)
         
         transition.updateBounds(node: self.contextContainer, bounds: self.contextContainer.frame.offsetBy(dx: -offset, dy: 0.0))
     }
     
-    override func touchesToOtherItemsPrevented() {
+    override public func touchesToOtherItemsPrevented() {
         super.touchesToOtherItemsPrevented()
         if let item = self.item {
             item.interaction.setPeerIdWithRevealedOptions(nil, nil)
         }
     }
     
-    override func revealOptionsInteractivelyOpened() {
+    override public func revealOptionsInteractivelyOpened() {
         if let item = self.item {
             switch item.index {
             case let .chatList(index):
@@ -3679,7 +3727,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override func revealOptionsInteractivelyClosed() {
+    override public func revealOptionsInteractivelyClosed() {
         if let item = self.item {
             switch item.index {
             case let .chatList(index):
@@ -3690,7 +3738,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override func revealOptionSelected(_ option: ItemListRevealOption, animated: Bool) {
+    override public func revealOptionSelected(_ option: ItemListRevealOption, animated: Bool) {
         guard let item = self.item else {
             return
         }
@@ -3814,7 +3862,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override func isReorderable(at point: CGPoint) -> Bool {
+    override public func isReorderable(at point: CGPoint) -> Bool {
         if let reorderControlNode = self.reorderControlNode, reorderControlNode.frame.contains(point) {
             return true
         }
@@ -3839,7 +3887,7 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.avatarNode.playArchiveAnimation()
     }
     
-    override func animateFrameTransition(_ progress: CGFloat, _ currentValue: CGFloat) {
+    override public func animateFrameTransition(_ progress: CGFloat, _ currentValue: CGFloat) {
         super.animateFrameTransition(progress, currentValue)
         
         if let item = self.item {
@@ -3859,14 +3907,14 @@ class ChatListItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    override func snapshotForReordering() -> UIView? {
+    override public func snapshotForReordering() -> UIView? {
         self.backgroundNode.alpha = 0.9
         let result = self.view.snapshotContentTree()
         self.backgroundNode.alpha = 1.0
         return result
     }
     
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let item = self.item else {
             return nil
         }

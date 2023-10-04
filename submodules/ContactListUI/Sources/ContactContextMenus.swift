@@ -113,7 +113,7 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
                 if let contactsController = contactsController, let navigationController = contactsController.navigationController as? NavigationController {
                     context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), peekData: nil))
                 }
-                f(.default)
+                f(.destructive(hideMainNode: false))
             })
         })))
         
@@ -198,7 +198,7 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
                         }))
                     }
                 })
-                f(.default)
+                f(.destructive(hideMainNode: false))
             })))
         }
         
@@ -218,14 +218,14 @@ func contactContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, con
                 generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Call"), color: theme.contextMenu.primaryColor)
             }, action: { _, f in
                 context.requestCall(peerId: peerId, isVideo: false, completion: {})
-                f(.default)
+                f(.destructive(hideMainNode: false))
             })))
         }
         if canVideoCall {
             items.append(.action(ContextMenuActionItem(text: strings.ContactList_Context_VideoCall, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/VideoCall"), color: theme.contextMenu.primaryColor)
             }, action: { _, f in
                 context.requestCall(peerId: peerId, isVideo: true, completion: {})
-                f(.default)
+                f(.destructive(hideMainNode: false))
             })))
         }
         return items

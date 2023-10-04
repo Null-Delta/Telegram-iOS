@@ -274,7 +274,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     private let chatThemeEmoticonPromise = Promise<String?>()
     private let chatWallpaperPromise = Promise<TelegramWallpaper?>()
     
-    private var chatTitleView: ChatTitleView?
+    public var chatTitleView: ChatTitleView?
     private var leftNavigationButton: ChatNavigationButton?
     private var rightNavigationButton: ChatNavigationButton?
     private var chatInfoNavigationButton: ChatNavigationButton?
@@ -17039,7 +17039,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                     })
                                 } else {
                                     if case let .channel(channel) = peer, channel.flags.contains(.isForum) {
-                                        self.effectiveNavigationController?.pushViewController(ChatListControllerImpl(context: self.context, location: .forum(peerId: channel.id), controlsHistoryPreload: false, enableDebugActions: false))
+                                        self.effectiveNavigationController?.pushViewController(ChatListControllerImpl(context: self.context, location: .forum(peerId: channel.id), controlsHistoryPreload: false, enableDebugActions: false, animationInController: ChatListContextAnimationInController(), animationOutController: ChatListContextAnimationOutController()))
                                     } else {
                                         self.effectiveNavigationController?.pushViewController(ChatControllerImpl(context: self.context, chatLocation: .peer(id: peer.id), subject: subject))
                                     }
@@ -19367,5 +19367,15 @@ final class ChatControllerNavigationDataSummary: CustomViewControllerNavigationD
         }
         peerNavigationItems.insert(peerNavigationItem, at: 0)
         return ChatControllerNavigationDataSummary(peerNavigationItems: peerNavigationItems)
+    }
+}
+
+extension ChatControllerImpl: ContextAnimatorContainer {
+    public var animationInController: ContextUI.ContextAnimationInControllerProtocol {
+        ChatListContextAnimationInController()
+    }
+    
+    public var animationOutController: ContextUI.ContextAnimationOutControllerProtocol {
+        ChatListContextAnimationOutController()
     }
 }

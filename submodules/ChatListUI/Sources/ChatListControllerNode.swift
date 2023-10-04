@@ -1715,7 +1715,7 @@ public final class ChatListContainerNode: ASDisplayNode, UIGestureRecognizerDele
     }
 }
 
-final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
+public final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     private let context: AccountContext
     private let location: ChatListControllerLocation
     private var presentationData: PresentationData
@@ -1738,7 +1738,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     var temporaryContentOffsetChangeTransition: ContainedViewLayoutTransition?
     
     private var tapRecognizer: UITapGestureRecognizer?
-    var navigationBar: NavigationBar?
+    public var navigationBar: NavigationBar?
     let navigationBarView = ComponentView<Empty>()
     weak var controller: ChatListControllerImpl?
     
@@ -1912,7 +1912,7 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         self.view.addGestureRecognizer(inlineContentPanRecognizer)
     }
     
-    override func didLoad() {
+    override public func didLoad() {
         super.didLoad()
         
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(self.tapGesture(_:)))
@@ -1927,11 +1927,11 @@ final class ChatListControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         }
     }
     
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         return false
     }
     
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         if let _ = otherGestureRecognizer as? InteractiveTransitionGestureRecognizer {
             return false
         }

@@ -120,9 +120,9 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
     private var inputPanelBackgroundContent: WallpaperBubbleBackgroundNode?
     
     private var intrinsicInputPanelBackgroundNodeSize: CGSize?
-    private let inputPanelBackgroundSeparatorNode: ASDisplayNode
+    public let inputPanelBackgroundSeparatorNode: ASDisplayNode
     private var inputPanelBottomBackgroundSeparatorBaseOffset: CGFloat = 0.0
-    private let inputPanelBottomBackgroundSeparatorNode: ASDisplayNode
+    public let inputPanelBottomBackgroundSeparatorNode: ASDisplayNode
     private var plainInputSeparatorAlpha: CGFloat?
     private var usePlainInputSeparator: Bool
     

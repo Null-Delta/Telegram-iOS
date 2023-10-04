@@ -15,6 +15,7 @@ import ContextUI
 import ChatListHeaderComponent
 import ChatListTitleView
 import ComponentFlow
+import ContactsPeerItem
 
 private final class ContextControllerContentSourceImpl: ContextControllerContentSource {
     let controller: ViewController
@@ -81,13 +82,26 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
     private(set) var storySubscriptions: EngineStorySubscriptions?
     private var storySubscriptionsDisposable: Disposable?
     
+    private var animationInController: ContextAnimationInControllerProtocol
+    private var animationOutController: ContextAnimationOutControllerProtocol
+
     let storiesReady = Promise<Bool>()
     
     private var panRecognizer: InteractiveTransitionGestureRecognizer?
     
-    init(context: AccountContext, sortOrder: Signal<ContactsSortOrder, NoError>, present: @escaping (ViewController, Any?) -> Void, controller: ContactsController) {
+    init(
+        context: AccountContext,
+        sortOrder: Signal<ContactsSortOrder, NoError>,
+        present: @escaping (ViewController, Any?) -> Void,
+        controller: ContactsController,
+        animationInController: ContextAnimationInControllerProtocol = DefaultContextAnimationInController(),
+        animationOutController: ContextAnimationOutControllerProtocol = DefaultContextAnimationOutController()
+    ) {
         self.context = context
         self.controller = controller
+        
+        self.animationInController = animationInController
+        self.animationOutController = animationOutController
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.stringsPromise.set(.single(self.presentationData.strings))
@@ -436,12 +450,18 @@ final class ContactsControllerNode: ASDisplayNode, UIGestureRecognizerDelegate {
         let items = contactContextMenuItems(context: self.context, peerId: peer.id, contactsController: contactsController, isStories: isStories) |> map { ContextController.Items(content: .list($0)) }
         
         if isStories, let node = node?.subnodes?.first(where: { $0 is ContextExtractedContentContainingNode }) as? ContextExtractedContentContainingNode {
-            let controller = ContextController(account: self.context.account, presentationData: self.presentationData, source: .extracted(ContactContextExtractedContentSource(sourceNode: node, shouldBeDismissed: .single(false))), items: items, recognizer: nil, gesture: gesture)
+            let controller = ContextController(account: self.context.account, presentationData: self.presentationData, source: .extracted(ContactContextExtractedContentSource(sourceNode: node, shouldBeDismissed: .single(false))), items: items, recognizer: nil, gesture: gesture, animationInController: self.animationInController, animationOutController: self.animationOutController)
             contactsController.presentInGlobalOverlay(controller)
         } else {
             let chatController = self.context.sharedContext.makeChatController(context: self.context, chatLocation: .peer(id: peer.id), subject: nil, botStart: nil, mode: .standard(previewing: true))
             chatController.canReadHistory.set(false)
-            let contextController = ContextController(account: self.context.account, presentationData: self.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: items, gesture: gesture)
+            
+            var contentInsets = UIEdgeInsets.zero
+            if let contactNode = node as? ContactsPeerItemNode {
+                contentInsets.top = contactNode.frame.height - (contactNode.dublicateNode?.frame.height ?? 0)
+            }
+            
+            let contextController = ContextController(account: self.context.account, presentationData: self.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: items, gesture: gesture, animationInController: self.animationInController, animationOutController: self.animationOutController, sourceInsets: contentInsets)
             contactsController.presentInGlobalOverlay(contextController)
         }
     }

@@ -154,15 +154,12 @@ public final class SearchDisplayController {
         self.containerLayout = (layout, navigationBarFrame.maxY)
         
         let bounds = CGRect(origin: CGPoint(), size: layout.size)
-        transition.updateFrame(node: self.backgroundNode, frame: bounds.insetBy(dx: -20.0, dy: -20.0))
+        transition.updateFrame(node: self.backgroundNode, frame: bounds.insetBy(dx: 0, dy: -20.0))
         
-        var size = layout.size
-        size.width += 20.0 * 2.0
+        let size = layout.size
         transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 20.0), size: size))
                                
-        var safeInsets = layout.safeInsets
-        safeInsets.left += 20.0
-        safeInsets.right += 20.0
+        let safeInsets = layout.safeInsets
         
         self.contentNode.containerLayoutUpdated(ContainerViewLayout(size: size, metrics: LayoutMetrics(), deviceMetrics: layout.deviceMetrics, intrinsicInsets: layout.intrinsicInsets, safeInsets: safeInsets, additionalInsets: UIEdgeInsets(), statusBarHeight: nil, inputHeight: layout.inputHeight, inputHeightIsInteractivellyChanging: layout.inputHeightIsInteractivellyChanging, inVoiceOver: layout.inVoiceOver), navigationBarHeight: navigationBarHeight, transition: transition)
     }

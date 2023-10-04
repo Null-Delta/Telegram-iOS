@@ -153,7 +153,7 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
         case lastNameFirst
     }
 
-    let presentationData: ItemListPresentationData
+    public let presentationData: ItemListPresentationData
     let style: ItemListStyle
     public let sectionId: ItemListSectionId
     let sortOrder: PresentationPersonNameOrder
@@ -348,7 +348,7 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
         }
     }
     
-    static func mergeType(item: ContactsPeerItem, previousItem: ListViewItem?, nextItem: ListViewItem?) -> (first: Bool, last: Bool, firstWithHeader: Bool) {
+    public static func mergeType(item: ContactsPeerItem, previousItem: ListViewItem?, nextItem: ListViewItem?) -> (first: Bool, last: Bool, firstWithHeader: Bool) {
         var first = false
         var last = false
         var firstWithHeader = false
@@ -382,27 +382,27 @@ public class ContactsPeerItem: ItemListItem, ListViewItemWithHeader {
 private let avatarFont = avatarPlaceholderFont(size: 16.0)
 
 public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
-    private let backgroundNode: ASDisplayNode
-    private let topSeparatorNode: ASDisplayNode
-    private let separatorNode: ASDisplayNode
+    public let backgroundNode: ASDisplayNode
+    public let topSeparatorNode: ASDisplayNode
+    public let separatorNode: ASDisplayNode
     private let highlightedBackgroundNode: ASDisplayNode
     private let maskNode: ASImageNode
     
     private let extractedBackgroundImageNode: ASImageNode
 
     private let containerNode: ContextControllerSourceNode
-    private let contextSourceNode: ContextExtractedContentContainingNode
+    public let contextSourceNode: ContextExtractedContentContainingNode
     
     private var extractedRect: CGRect?
     private var nonExtractedRect: CGRect?
     
-    private let offsetContainerNode: ASDisplayNode
-    private let avatarNodeContainer: ASDisplayNode
+    public let offsetContainerNode: ASDisplayNode
+    public let avatarNodeContainer: ASDisplayNode
     public let avatarNode: AvatarNode
     private var avatarIconView: ComponentHostView<Empty>?
     private var avatarIconComponent: EmojiStatusComponent?
-    private let titleNode: TextNode
-    private var credibilityIconView: ComponentHostView<Empty>?
+    public let titleNode: TextNode
+    public var credibilityIconView: ComponentHostView<Empty>?
     private var credibilityIconComponent: EmojiStatusComponent?
     private let statusNode: TextNode
     private var statusIconNode: ASImageNode?
@@ -415,9 +415,11 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
     private var avatarTapRecognizer: UITapGestureRecognizer?
     
     private var isHighlighted: Bool = false
+    
+    public var dublicateNode: ContactsPeerItemNode?
 
     private var peerPresenceManager: PeerPresenceStatusManager?
-    private var layoutParams: (ContactsPeerItem, ListViewItemLayoutParams, Bool, Bool, Bool, ItemListNeighbors)?
+    public private(set) var layoutParams: (ContactsPeerItem, ListViewItemLayoutParams, Bool, Bool, Bool, ItemListNeighbors)?
     public var chatPeer: EnginePeer? {
         if let peer = self.layoutParams?.0.peer {
             switch peer {
@@ -498,6 +500,10 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         
         self.contextSourceNode = ContextExtractedContentContainingNode()
         self.containerNode = ContextControllerSourceNode()
+        self.containerNode.needAnimateShadow = true
+        self.containerNode.scaleAnimationBySideProvider = { side in
+            max(0.7, (side + 12.0) / side)
+        }
         
         self.offsetContainerNode = ASDisplayNode()
         
@@ -510,17 +516,57 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         
         super.init(layerBacked: false, dynamicBounce: false, rotated: false, seeThrough: false)
         
+        self.containerNode.shouldBegin = { [weak self] _ in
+            self?.highlightedBackgroundNode.backgroundColor = .clear
+            return true
+        }
+        
+        self.containerNode.onAnimationStart = { [weak self] in
+            guard let strongSelf = self else { return }
+            
+            strongSelf.separatorNode.alpha = 0
+
+            strongSelf.dublicateNode?.removeFromSupernode()
+            strongSelf.dublicateNode = nil
+            strongSelf.dublicateNode = ContactsPeerItemNode()
+            
+            strongSelf.dublicateNode?.layoutParams = strongSelf.layoutParams
+            
+            strongSelf.dublicateNode?.layoutParams?.1 = .init(
+                width: strongSelf.layoutParams?.1.width ?? 0,
+                leftInset: strongSelf.layoutParams?.1.leftInset ?? 0,
+                rightInset: strongSelf.layoutParams?.1.rightInset ?? 0,
+                availableHeight: strongSelf.layoutParams?.1.availableHeight ?? 0,
+                ignoreHeader: true
+            )
+            
+            strongSelf.dublicateNode?.layoutForParams(
+                strongSelf.dublicateNode!.layoutParams!.1,
+                item: strongSelf.item!,
+                previousItem: nil,
+                nextItem: nil
+            )
+            
+
+            strongSelf.dublicateNode?.alpha = 0
+            strongSelf.dublicateNode?.frame.origin = .zero
+
+            strongSelf.addSubnode(strongSelf.dublicateNode!)
+            strongSelf.dublicateNode?.isUserInteractionEnabled = false
+            
+            strongSelf.dublicateNode?.backgroundNode.backgroundColor = strongSelf.backgroundNode.backgroundColor
+        }
+        
         self.isAccessibilityElement = true
-        
-        self.addSubnode(self.backgroundNode)
-        
-        self.addSubnode(self.topSeparatorNode)
-        self.addSubnode(self.separatorNode)
         
         self.containerNode.addSubnode(self.contextSourceNode)
         self.containerNode.targetNodeForActivationProgress = self.contextSourceNode.contentNode
         self.addSubnode(self.containerNode)
         
+        self.contextSourceNode.contentNode.addSubnode(self.backgroundNode)
+        self.contextSourceNode.contentNode.addSubnode(self.topSeparatorNode)
+        self.contextSourceNode.contentNode.addSubnode(self.separatorNode)
+
         self.contextSourceNode.contentNode.addSubnode(self.extractedBackgroundImageNode)
         self.contextSourceNode.contentNode.addSubnode(self.offsetContainerNode)
         
@@ -543,7 +589,13 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                 gesture.cancel()
                 return
             }
-            contextAction(strongSelf.containerNode, gesture, nil)
+            
+            contextAction(strongSelf, gesture, nil)
+        }
+        
+        self.containerNode.cancelled = { [weak self] _, _ in
+            self?.separatorNode.alpha = 1
+            self?.separatorNode.layer.animateAlpha(from: 0, to: 1, duration: 0.2)
         }
         
         self.contextSourceNode.willUpdateIsExtractedToContextPreview = { [weak self] isExtracted, transition in
@@ -581,10 +633,13 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             let (first, last, firstWithHeader) = ContactsPeerItem.mergeType(item: item, previousItem: previousItem, nextItem: nextItem)
             self.layoutParams = (item, params, first, last, firstWithHeader, itemListNeighbors(item: item, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
             let makeLayout = self.asyncLayout()
-            let (nodeLayout, nodeApply) = makeLayout(item, params, first, last, firstWithHeader, itemListNeighbors(item: item, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
+            let (nodeLayout, nodeApply) = makeLayout(item, params, first, last, params.ignoreHeader ? false : firstWithHeader, itemListNeighbors(item: item, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
             self.contentSize = nodeLayout.contentSize
             self.insets = nodeLayout.insets
-            let _ = nodeApply()
+            
+            let (_, apply) = nodeApply()
+            
+            apply(false, false)
         }
     }
     
@@ -618,7 +673,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         
         if reallyHighlighted {
             if self.highlightedBackgroundNode.supernode == nil {
-                self.insertSubnode(self.highlightedBackgroundNode, aboveSubnode: self.separatorNode)
+                self.contextSourceNode.contentNode.insertSubnode(self.highlightedBackgroundNode, aboveSubnode: self.separatorNode)
                 self.highlightedBackgroundNode.alpha = 0.0
             }
             self.highlightedBackgroundNode.layer.removeAllAnimations()
