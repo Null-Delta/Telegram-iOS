@@ -992,6 +992,7 @@ public class ChatListContextAnimationInController: ContextAnimationInControllerP
 
         //MARK: - background
         
+        chatBackgroundNode.update(wallpaper: chatController.presentationInterfaceState.chatWallpaper)
         chatBackgroundNode.layer.animateSpring(
             from: CGSize(
                 width: startFrame.width * (1 / currentScale),
@@ -1110,7 +1111,7 @@ public class ChatListContextAnimationInController: ContextAnimationInControllerP
         )
         
         let fontScale = (chatController.chatTitleView?.titleFont.pointSize ?? titleFontSize) / titleFontSize
-        navigationBar.titleView!.subviews[0].subviews[0].layer.animateSpring(
+        navigationBar.titleView!.subviews[0].layer.animateSpring(
             from: CATransform3DScale(
                 CATransform3DTranslate(
                     CATransform3DIdentity,

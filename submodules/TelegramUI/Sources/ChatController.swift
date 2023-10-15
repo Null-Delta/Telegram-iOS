@@ -264,7 +264,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     private let wallpaperReady = Promise<Bool>()
     private let presentationReady = Promise<Bool>()
     
-    private var presentationInterfaceState: ChatPresentationInterfaceState
+    private(set) var presentationInterfaceState: ChatPresentationInterfaceState
     var presentationInterfaceStatePromise: ValuePromise<ChatPresentationInterfaceState>
     
     var selectedMessageIds: Set<EngineMessage.Id>? {

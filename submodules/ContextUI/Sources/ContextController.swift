@@ -1,4 +1,5 @@
 import Foundation
+import AVFAudio
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -280,7 +281,8 @@ public final class ContextControllerNode: ViewControllerTracingNode, UIScrollVie
     private var highlightedReaction: ReactionItem.Reaction?
     
     private let hapticFeedback = HapticFeedback()
-    
+    private let hapticPlayer = try? AVAudioPlayer(contentsOf: NSURL(string: "file:///System/Library/Audio/UISounds/nano/Preview_AudioAndHaptic.caf")! as URL)
+
     public var animatedIn = false
     public var isAnimatingOut = false
     
@@ -831,7 +833,8 @@ public final class ContextControllerNode: ViewControllerTracingNode, UIScrollVie
     
     func animateIn() {
         self.gesture?.endPressedAppearance()
-        self.hapticFeedback.impact()
+        self.hapticFeedback.impact(.heavy)
+        hapticPlayer?.play()
         
         if let _ = self.presentationNode {
             self.didCompleteAnimationIn = true

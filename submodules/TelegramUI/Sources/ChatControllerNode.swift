@@ -1183,10 +1183,14 @@ class ChatControllerNode: ASDisplayNode, UIScrollViewDelegate {
             previewing = false
         }
         
-        let inputNodeForState = inputNodeForChatPresentationIntefaceState(self.chatPresentationInterfaceState, context: self.context, currentNode: self.inputNode, interfaceInteraction: self.interfaceInteraction, controllerInteraction: self.controllerInteraction, inputPanelNode: self.inputPanelNode, makeMediaInputNode: {
-            return self.makeMediaInputNode()
-        })
+        var inputNodeForState: ChatInputNode? = nil
         
+        if let mode = self.controller?.presentationInterfaceState.mode, mode != .standard(previewing: true) {
+            inputNodeForState = inputNodeForChatPresentationIntefaceState(self.chatPresentationInterfaceState, context: self.context, currentNode: self.inputNode, interfaceInteraction: self.interfaceInteraction, controllerInteraction: self.controllerInteraction, inputPanelNode: self.inputPanelNode, makeMediaInputNode: {
+                return self.makeMediaInputNode()
+            })
+        }
+
         var insets: UIEdgeInsets
         var inputPanelBottomInsetTerm: CGFloat = 0.0
         if let inputNodeForState = inputNodeForState {

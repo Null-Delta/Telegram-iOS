@@ -71,7 +71,7 @@ public class ContextGestureDurationProvider: NSObject, UIContextMenuInteractionD
     public static var instance = ContextGestureDurationProvider()
     
     public static var duration: Double {
-        if #available(iOS 13, *) {
+        if #available(iOS 16, *) {
             lazy var interaction = UIContextMenuInteraction(delegate: ContextGestureDurationProvider.instance)
             let testView = UIView(frame: .init(x: 0, y: 0, width: 100, height: 100))
             testView.addInteraction(interaction)
