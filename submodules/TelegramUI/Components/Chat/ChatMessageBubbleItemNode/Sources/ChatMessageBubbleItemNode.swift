@@ -3594,6 +3594,11 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 strongSelf.shareButtonNode = shareButtonNode
                 strongSelf.insertSubnode(shareButtonNode, belowSubnode: strongSelf.messageAccessibilityArea)
                 shareButtonNode.addTarget(strongSelf, action: #selector(strongSelf.shareButtonPressed), forControlEvents: .touchUpInside)
+                shareButtonNode.secondaryAction = {
+                    if let item = strongSelf.item {
+                        item.controllerInteraction.openFastInlineSharingMenu(item.message, strongSelf.shareButtonNode!, [], strongSelf.shareButtonNode!.contextGesture)
+                    }
+                }
             }
         } else if let shareButtonNode = strongSelf.shareButtonNode {
             strongSelf.shareButtonNode = nil

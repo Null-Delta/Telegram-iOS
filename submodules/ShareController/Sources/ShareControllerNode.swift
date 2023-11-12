@@ -10,7 +10,7 @@ import AccountContext
 import TelegramIntents
 import ContextUI
 
-enum ShareState {
+public enum ShareState {
     case preparing(Bool)
     case progress(Float)
     case done

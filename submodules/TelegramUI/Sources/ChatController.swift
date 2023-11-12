@@ -115,6 +115,7 @@ import ChatMessageAnimatedStickerItemNode
 import ChatMessageBubbleItemNode
 import ChatNavigationButton
 import WebsiteType
+import ContextUI
 
 public enum ChatControllerPeekActions {
     case standard
@@ -558,7 +559,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     
     var performTextSelectionAction: ((Message?, Bool, NSAttributedString, TextSelectionAction) -> Void)?
     var performOpenURL: ((Message?, String, Promise<Bool>?) -> Void)?
-    
+
+    var fastInlineSharePeers: [Peer] = []
+    var fastInlineSharePeersDisposable = MetaDisposable()
+
     public init(context: AccountContext, chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?> = Atomic<ChatLocationContextHolder?>(value: nil), subject: ChatControllerSubject? = nil, botStart: ChatControllerInitialBotStart? = nil, attachBotStart: ChatControllerInitialAttachBotStart? = nil, botAppStart: ChatControllerInitialBotAppStart? = nil, mode: ChatControllerPresentationMode = .standard(previewing: false), peekData: ChatPeekTimeout? = nil, peerNearbyData: ChatPeerNearbyData? = nil, chatListFilter: Int32? = nil, chatNavigationStack: [ChatNavigationStackItem] = []) {
         let _ = ChatControllerCount.modify { value in
             return value + 1
@@ -4966,7 +4970,51 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 text = self.presentationData.strings.Chat_ToastQuoteChatUnavailbalePrivateChat
             }
             self.controllerInteraction?.displayUndo(.info(title: nil, text: text, timeout: nil, customUndoText: nil))
-        }, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, pollActionState: ChatInterfacePollActionState(), stickerSettings: self.stickerSettings, presentationContext: ChatPresentationContext(context: context, backgroundNode: self.chatBackgroundNode))
+        }, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, pollActionState: ChatInterfacePollActionState(), stickerSettings: self.stickerSettings, presentationContext: ChatPresentationContext(context: context, backgroundNode: self.chatBackgroundNode),
+        openFastInlineSharingMenu: { message, node, peers, gesture in
+            guard self.fastInlineSharePeers.count >= 3 else { return }
+
+            let shareController = ShareController(context: context, subject: .messages([message]), externalShare: true, immediateExternalShare: false, updatedPresentationData: self.updatedPresentationData)
+
+            let controller = FastInlineShareController(
+                accountContext: context,
+                presentationData: self.presentationData,
+                peers: self.fastInlineSharePeers,
+                contextGesture: gesture,
+                sourceNode: node,
+                sourceFrame: { node.view.globalFrame },
+                sourceOrigin: { node.layer.frame.origin },
+                peerSelected: { [weak self] peer, view in
+                    guard let strongSelf = self else { return }
+
+                    let _ = shareController.shareLegacy(text: "", peerIds: [peer.id], topicIds: [:], showNames: true, silently: true).start()
+
+                    var peerName =  EnginePeer(peer).displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder)
+                    peerName = peerName.replacingOccurrences(of: "**", with: "")
+                    let text = strongSelf.presentationData.strings.Conversation_ForwardTooltip_Chat_One(peerName).string
+
+                    let undoController = UndoOverlayController(
+                        presentationData: strongSelf.presentationData,
+                        content: .forward(savedMessages: false, text: text, jumpAvatarView: view, undo: false),
+                        elevatedLayout: false,
+                        animateInAsReplacement: true,
+                        action: { action in
+                            switch action {
+                            case .commit:
+                                return true
+                            case .undo:
+                                return false
+                            case .info:
+                                return false
+                            }
+                        }
+                    )
+                    
+                    strongSelf.present(undoController, in: .current)
+                }
+            )
+            self.present(controller, in: .current)
+        })
         controllerInteraction.enableFullTranslucency = context.sharedContext.energyUsageSettings.fullTranslucency
         
         self.controllerInteraction = controllerInteraction
@@ -6735,6 +6783,57 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return state.updatedInterfaceState({ $0.withUpdatedSelectedMessages(messageIds) })
             })
         }
+
+        fastInlineSharePeersDisposable.set (
+            combineLatest(
+                context.engine.peers.recentPeers(),
+
+                context.engine.peers.getChatListPeers(filterPredicate: chatListFilterPredicate(
+                    filter: .init(
+                        isShared: false,
+                        hasSharedLinks: false,
+                        categories: [.nonContacts, .contacts],
+                        excludeMuted: false,
+                        excludeRead: false,
+                        excludeArchived: true,
+                        includePeers: .init(),
+                        excludePeers: .init()
+                        ),
+                    accountPeerId: context.account.peerId
+                ))
+            ).start(next: { [weak self] (_, personalPeers) in
+                guard let strongSelf = self else { return }
+//                let peers: RecentPeers = recentPeers
+                let personal = personalPeers.map { $0._asPeer() }.filter { $0.id != context.account.peerId }
+
+//                switch peers {
+//                case .peers(let array):
+//                    if array.count >= 3 {
+//                        var prefix: [Peer] = []
+//                        for i in 0..<min(4, array.count) {
+//                            prefix.append(array[i])
+//                        }
+//
+//                        strongSelf.fastInlineSharePeers = prefix
+//                    } else {
+//                        strongSelf.fastInlineSharePeers = []
+//                    }
+//                case .disabled:
+                    if personal.count >= 3 {
+                        var prefix: [Peer] = []
+                        for i in 0..<min(4, personal.count) {
+                            prefix.append(personal[i])
+                        }
+
+                        strongSelf.fastInlineSharePeers = prefix
+                    } else {
+                        strongSelf.fastInlineSharePeers = []
+                    }
+//                    break
+//                }
+
+            })
+        )
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -6832,6 +6931,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             self.automaticMediaDownloadSettingsDisposable?.dispose()
             self.stickerSettingsDisposable?.dispose()
             self.searchQuerySuggestionState?.1.dispose()
+            self.fastInlineSharePeersDisposable.dispose()
         }
         deallocate()
     }

@@ -457,8 +457,13 @@ public extension CALayer {
         self.animate(from: NSNumber(value: Float(from)), to: NSNumber(value: Float(to)), keyPath: "lineWidth", timingFunction: timingFunction, duration: duration, delay: delay, mediaTimingFunction: mediaTimingFunction, removeOnCompletion: removeOnCompletion, additive: additive, completion: completion)
     }
     
-    func animatePositionKeyframes(values: [CGPoint], duration: Double, removeOnCompletion: Bool = true, completion: ((Bool) -> Void)? = nil) {
-        self.animateKeyframes(values: values.map { NSValue(cgPoint: $0) }, duration: duration, keyPath: "position")
+    func animatePositionKeyframes(values: [CGPoint], duration: Double, removeOnCompletion: Bool = true, timingFunction: String = CAMediaTimingFunctionName.linear.rawValue, completion: ((Bool) -> Void)? = nil) {
+        self.animateKeyframes(
+            values: values.map { NSValue(cgPoint: $0) },
+            duration: duration,
+            keyPath: "position",
+            timingFunction: timingFunction
+        )
     }
     
     func animateFrame(from: CGRect, to: CGRect, duration: Double, delay: Double = 0.0, timingFunction: String = CAMediaTimingFunctionName.easeInEaseOut.rawValue, mediaTimingFunction: CAMediaTimingFunction? = nil, removeOnCompletion: Bool = true, additive: Bool = false, force: Bool = false, completion: ((Bool) -> Void)? = nil) {

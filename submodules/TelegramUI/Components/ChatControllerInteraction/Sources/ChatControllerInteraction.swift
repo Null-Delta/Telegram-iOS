@@ -226,7 +226,8 @@ public final class ChatControllerInteraction {
     public let presentationContext: ChatPresentationContext
     public var playNextOutgoingGift: Bool = false
     public var enableFullTranslucency: Bool = true
-    
+    public let openFastInlineSharingMenu: (Message, ASDisplayNode, [Peer], ContextGesture) -> Void
+
     public init(
         openMessage: @escaping (Message, ChatControllerInteractionOpenMessageMode) -> Bool,
         openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer, MessageReference?, OpenPeerSource) -> Void,
@@ -326,7 +327,8 @@ public final class ChatControllerInteraction {
         automaticMediaDownloadSettings: MediaAutoDownloadSettings,
         pollActionState: ChatInterfacePollActionState,
         stickerSettings: ChatInterfaceStickerSettings,
-        presentationContext: ChatPresentationContext
+        presentationContext: ChatPresentationContext,
+        openFastInlineSharingMenu: @escaping (Message, ASDisplayNode, [Peer], ContextGesture) -> Void
     ) {
         self.openMessage = openMessage
         self.openPeer = openPeer
@@ -430,5 +432,6 @@ public final class ChatControllerInteraction {
         self.stickerSettings = stickerSettings
 
         self.presentationContext = presentationContext
+        self.openFastInlineSharingMenu = openFastInlineSharingMenu
     }
 }

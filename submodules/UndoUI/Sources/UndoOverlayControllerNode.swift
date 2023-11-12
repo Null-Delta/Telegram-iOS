@@ -18,6 +18,40 @@ import AvatarNode
 import AccountContext
 import AnimatedAvatarSetNode
 
+public func generateParabollicMotionKeyframes(from sourcePoint: CGPoint, to targetPosition: CGPoint, elevation: CGFloat) -> [CGPoint] {
+    let midPoint = CGPoint(x: (sourcePoint.x + targetPosition.x) / 2.0, y: sourcePoint.y - elevation)
+
+    let x1 = sourcePoint.x
+    let y1 = sourcePoint.y
+    let x2 = midPoint.x
+    let y2 = midPoint.y
+    let x3 = targetPosition.x
+    let y3 = targetPosition.y
+
+    var keyframes: [CGPoint] = []
+    if abs(y1 - y3) < 5.0 && abs(x1 - x3) < 5.0 {
+        for i in 0 ..< 10 {
+            let k = CGFloat(i) / CGFloat(10 - 1)
+            let x = sourcePoint.x * (1.0 - k) + targetPosition.x * k
+            let y = sourcePoint.y * (1.0 - k) + targetPosition.y * k
+            keyframes.append(CGPoint(x: x, y: y))
+        }
+    } else {
+        let a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / ((x1 - x2) * (x1 - x3) * (x2 - x3))
+        let b = (x1 * x1 * (y2 - y3) + x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1)) / ((x1 - x2) * (x1 - x3) * (x2 - x3))
+        let c = (x2 * x2 * (x3 * y1 - x1 * y3) + x2 * (x1 * x1 * y3 - x3 * x3 * y1) + x1 * x3 * (x3 - x1) * y2) / ((x1 - x2) * (x1 - x3) * (x2 - x3))
+
+        for i in 0 ..< 10 {
+            let k = CGFloat(i) / CGFloat(10 - 1)
+            let x = sourcePoint.x * (1.0 - k) + targetPosition.x * k
+            let y = a * x * x + b * x + c
+            keyframes.append(CGPoint(x: x, y: y))
+        }
+    }
+
+    return keyframes
+}
+
 final class UndoOverlayControllerNode: ViewControllerTracingNode {
     private let presentationData: PresentationData
     private let elevatedLayout: Bool
@@ -45,7 +79,8 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
     private let panelWrapperNode: ASDisplayNode
     private let action: (UndoOverlayAction) -> Bool
     private let dismiss: () -> Void
-    
+    private let jumpAvatarView: UIView?
+
     private var content: UndoOverlayContent
     private let blurred: Bool
     
@@ -98,6 +133,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
         switch content {
             case let .removedChat(title, text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
@@ -117,6 +153,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.statusNode = RadialStatusNode(backgroundNodeColor: .clear)
             case let .archivedChat(_, title, text, undo):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 if undo {
                     self.iconNode = ASImageNode()
                     self.iconNode?.displayWithoutProcessing = true
@@ -144,6 +181,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .hidArchive(title, text, undo):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_archiveswipe", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -155,6 +193,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .revealedArchive(title, text, undo):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_infotip", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -166,6 +205,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .autoDelete(isOn, title, text, customUndoText):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: isOn ? "anim_autoremove_on" : "anim_autoremove_off", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -193,6 +233,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .succeed(text, timeout, customUndoText):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_success", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -212,6 +253,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = timeout ?? 3
             case let .info(title, text, timeout, customUndoText):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_infotip", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -246,6 +288,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .actionSucceeded(title, text, cancel, destructive):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_success", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -266,6 +309,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .linkCopied(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_linkcopied", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -285,6 +329,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .banned(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_banned", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -299,6 +344,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .importedMessage(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = ASImageNode()
                 self.iconNode?.displayWithoutProcessing = true
                 self.iconNode?.displaysAsynchronously = false
@@ -312,6 +358,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .chatAddedToFolder(chatTitle, folderTitle):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_success", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -329,6 +376,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .chatRemovedFromFolder(chatTitle, folderTitle):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_success", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -346,6 +394,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .paymentSent(currencyValue, itemTitle):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_payment", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -363,6 +412,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .messagesUnpinned(title, text, undo, isHidden):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: isHidden ? "anim_message_hidepin" : "anim_message_unpin", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
@@ -381,6 +431,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .emoji(name, text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
@@ -397,6 +448,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .swipeToReply(title, text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_swipereply", colors: [:], scale: 1.0)
@@ -409,6 +461,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .stickersModified(title, text, undo, info, topItem, context):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
@@ -501,6 +554,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .dice(dice, context, text, action):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
@@ -555,6 +609,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .setProximityAlert(title, text, cancelled):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: cancelled ? "anim_proximity_cancelled" : "anim_proximity_set", colors: [:], scale: 0.45)
@@ -574,6 +629,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             case let .invitedToVoiceChat(context, peer, text, action, duration):
                 self.avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 15.0))
                 self.iconNode = nil
+                self.jumpAvatarView = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
                 self.animatedStickerNode = nil
@@ -595,6 +651,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = duration
             case let .audioRate(rate, text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
             
@@ -622,10 +679,12 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 
                 displayUndo = false
                 self.originalRemainingSeconds = 3
-            case let .forward(savedMessages, text):
+            case let .forward(savedMessages, text, jumpAvatar, isUndo):
                 self.avatarNode = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
+                self.jumpAvatarView = jumpAvatar
+
                 self.animationNode = AnimationNode(animation: savedMessages ? "anim_savedmessages" : "anim_forward", colors: [:], scale: 0.066)
                 self.animatedStickerNode = nil
                 
@@ -635,10 +694,11 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.textNode.attributedText = attributedText
                 self.textNode.maximumNumberOfLines = 2
                 
-                displayUndo = false
+                displayUndo = isUndo
                 self.originalRemainingSeconds = 3
             case let .gigagroupConversion(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_gigagroup", colors: [:], scale: 0.066)
@@ -654,6 +714,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .linkRevoked(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_linkrevoked", colors: [:], scale: 0.066)
@@ -669,6 +730,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .voiceChatRecording(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_vcrecord", colors: [:], scale: 0.066)
@@ -685,6 +747,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             case let .voiceChatFlag(text):
                 self.avatarNode = nil
                 self.iconNode = nil
+                self.jumpAvatarView = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_vcflag", colors: [:], scale: 0.066)
                 self.animatedStickerNode = nil
@@ -699,6 +762,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .voiceChatCanSpeak(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_vcspeak", colors: [:], scale: 0.066)
@@ -715,6 +779,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             case let .sticker(context, file, loop, title, text, customUndoText, _):
                 self.avatarNode = nil
                 self.iconNode = nil
+                self.jumpAvatarView = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
                 
@@ -815,6 +880,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             case let .copy(text):
                 self.avatarNode = nil
                 self.iconNode = nil
+                self.jumpAvatarView = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_copy", colors: [:], scale: 0.066)
                 self.animatedStickerNode = nil
@@ -829,6 +895,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 3
             case let .mediaSaved(text):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
@@ -855,6 +922,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             case let .inviteRequestSent(title, text):
                 self.avatarNode = nil
                 self.iconNode = nil
+                self.jumpAvatarView = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_inviterequest", colors: [:], scale: 0.066)
                 self.animatedStickerNode = nil
@@ -865,6 +933,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.originalRemainingSeconds = 5
             case let .notificationSoundAdded(title, text, action):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = AnimationNode(animation: "anim_notificationsound", colors: [:], scale: 0.066)
@@ -901,7 +970,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.avatarNode = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
-            
+                self.jumpAvatarView = nil
                 self.animationNode = AnimationNode(animation: animation, colors: colors, scale: scale)
                 self.animatedStickerNode = nil
             
@@ -945,6 +1014,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .premiumPaywall(title, text, customUndoText, timeout, linkAction):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = ASImageNode()
                 self.iconNode?.displayWithoutProcessing = true
                 self.iconNode?.displaysAsynchronously = false
@@ -1008,6 +1078,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .image(image, title, text, round, customUndoText):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 self.iconNode = ASImageNode()
                 self.iconNode?.clipsToBounds = true
                 self.iconNode?.contentMode = .scaleAspectFill
@@ -1044,6 +1115,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 }
             case let .peers(context, peers, title, text, customUndoText):
                 self.avatarNode = nil
+                self.jumpAvatarView = nil
                 let multiAvatarsNode = AnimatedAvatarSetNode()
                 self.multiAvatarsNode = multiAvatarsNode
                 let avatarsContext = AnimatedAvatarSetContext()
@@ -1411,7 +1483,14 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
         }
         
         if let animationNode = self.animationNode, let iconSize = preferredSize {
-            let iconFrame = CGRect(origin: CGPoint(x: floor((leftInset - iconSize.width) / 2.0), y: floor((contentHeight - iconSize.height) / 2.0) + verticalOffset), size: iconSize)
+            let offset: CGPoint = jumpAvatarView == nil ? .zero : panelFrame.origin
+            let iconFrame = CGRect(
+                origin: CGPoint(
+                    x: floor((leftInset - iconSize.width) / 2.0 + offset.x),
+                    y: floor((contentHeight - iconSize.height) / 2.0) + verticalOffset + offset.y
+                ),
+                size: iconSize
+            )
             transition.updateFrame(node: animationNode, frame: iconFrame)
         }
         
@@ -1470,6 +1549,59 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
     }
     
     func animateIn(asReplacement: Bool) {
+        if let iconNode = animationNode, let avatarView = jumpAvatarView {
+            let iconJumpAnimationPoint = avatarView.convert(
+                avatarView.bounds.center,
+                to: nil
+            )
+            let globalOffset = iconNode.frame.center
+
+            let avatarCopy = avatarView.snapshotView(afterScreenUpdates: false)!
+
+            iconNode.removeFromSupernode()
+
+            view.addSubview(avatarCopy)
+            view.addSubview(iconNode.view)
+
+            avatarView.alpha = 0
+            avatarCopy.transform = avatarView.transform
+
+            print(iconNode.bounds.center)
+            let scale = iconNode.frame.width / avatarCopy.frame.width
+
+            let points = generateParabollicMotionKeyframes(
+                from: iconJumpAnimationPoint,
+                to: globalOffset,
+                elevation: 30
+            )
+
+            iconNode.layer.animatePositionKeyframes(
+                values: points,
+                duration: 0.3,
+                timingFunction: CAMediaTimingFunctionName.easeOut.rawValue
+            )
+            avatarCopy.layer.animatePositionKeyframes(
+                values: points,
+                duration: 0.3,
+                timingFunction: CAMediaTimingFunctionName.easeOut.rawValue
+            )
+
+            iconNode.view.transform = .init(scaleX: 0.01, y: 0.01)
+
+            UIView.animate(withDuration: 0.1, delay: 0.2, animations: {
+                iconNode.view.transform = .identity
+            })
+
+            UIView.animate(withDuration: 0.05, delay: 0.25, animations: {
+                avatarCopy.alpha = 0
+            })
+
+            UIView.animate(withDuration: 0.3) {
+                avatarCopy.transform = .init(scaleX: scale, y: scale)
+                iconNode.view.transform = .identity
+            }
+        }
+
         if asReplacement {
             let offset: CGFloat
             switch self.placementPosition {
@@ -1518,6 +1650,9 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
         }
         self.panelNode.layer.animateScale(from: 1.0, to: 0.96, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
         self.panelWrapperNode.layer.animateScale(from: 1.0, to: 0.96, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
+
+        self.animationNode?.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, delay: 0.0, timingFunction: CAMediaTimingFunctionName.easeOut.rawValue, removeOnCompletion: false)
+        self.animationNode?.layer.animateScale(from: 1.0, to: 0.96, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
     }
     
     func animateOutWithReplacement(completion: @escaping () -> Void) {
