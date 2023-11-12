@@ -4971,15 +4971,16 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             self.controllerInteraction?.displayUndo(.info(title: nil, text: text, timeout: nil, customUndoText: nil))
         }, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings, pollActionState: ChatInterfacePollActionState(), stickerSettings: self.stickerSettings, presentationContext: ChatPresentationContext(context: context, backgroundNode: self.chatBackgroundNode),
-        openFastInlineSharingMenu: { message, node, peers, gesture in
-            guard self.fastInlineSharePeers.count >= 3 else { return }
+        openFastInlineSharingMenu: { [weak self] message, node, peers, gesture in
+            guard let strongSelf = self else { return }
+            guard strongSelf.fastInlineSharePeers.count >= 3 else { return }
 
-            let shareController = ShareController(context: context, subject: .messages([message]), externalShare: true, immediateExternalShare: false, updatedPresentationData: self.updatedPresentationData)
+            let shareController = ShareController(context: context, subject: .messages([message]), externalShare: true, immediateExternalShare: false, updatedPresentationData: strongSelf.updatedPresentationData)
 
             let controller = FastInlineShareController(
                 accountContext: context,
-                presentationData: self.presentationData,
-                peers: self.fastInlineSharePeers,
+                presentationData: strongSelf.presentationData,
+                peers: strongSelf.fastInlineSharePeers,
                 contextGesture: gesture,
                 sourceNode: node,
                 sourceFrame: { node.view.globalFrame },
@@ -5013,7 +5014,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     strongSelf.present(undoController, in: .current)
                 }
             )
-            self.present(controller, in: .current)
+            strongSelf.present(controller, in: .current)
         })
         controllerInteraction.enableFullTranslucency = context.sharedContext.energyUsageSettings.fullTranslucency
         
