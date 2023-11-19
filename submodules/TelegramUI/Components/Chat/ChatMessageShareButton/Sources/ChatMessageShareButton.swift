@@ -24,14 +24,42 @@ public class ChatMessageShareButton: HighlightableButtonNode {
     
     private var absolutePosition: (CGRect, CGSize)?
     
+    public private(set) var contextGesture: ContextGesture!
+    
+    public var secondaryAction: (() -> Void)?
+    
     public init() {
         self.iconNode = ASImageNode()
         
         super.init(pointerStyle: nil)
         
+        self.highligthedChanged = { _ in }
+        
+        contextGesture = ContextGesture(target: self, action: nil)
+        contextGesture.shouldBegin = { _ in
+            true
+        }
+        contextGesture.activated = { [weak self] gesture, _ in
+            self?.secondaryAction?()
+        }
+        contextGesture.activationProgress = { [weak self] progress, context in
+            let scale = 1 - progress / 8.0
+            if progress != 0 {
+                self?.transform = CATransform3DScale(CATransform3DIdentity, scale, scale, 1)
+            } else if case let .ended(value) = context, value != 1 {
+                UIView.animate(withDuration: 0.3) {
+                    self?.transform = CATransform3DIdentity
+                }
+            }
+        }
+        
         self.allowsGroupOpacity = true
         
         self.addSubnode(self.iconNode)
+
+        DispatchQueue.main.async {
+            self.view.addGestureRecognizer(self.contextGesture)
+        }
     }
     
     required public init?(coder aDecoder: NSCoder) {

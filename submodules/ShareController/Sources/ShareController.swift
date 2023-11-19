@@ -1819,7 +1819,7 @@ public final class ShareController: ViewController {
         }
     }
     
-    private func shareLegacy(text: String, peerIds: [EnginePeer.Id], topicIds: [EnginePeer.Id: Int64], showNames: Bool, silently: Bool) -> Signal<ShareState, ShareControllerError> {
+    public func shareLegacy(text: String, peerIds: [EnginePeer.Id], topicIds: [EnginePeer.Id: Int64], showNames: Bool, silently: Bool) -> Signal<ShareState, ShareControllerError> {
         guard let currentContext = self.currentContext as? ShareControllerAppAccountContext else {
             return .single(.done)
         }

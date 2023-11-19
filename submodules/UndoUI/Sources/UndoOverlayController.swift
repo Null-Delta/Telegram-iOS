@@ -27,7 +27,7 @@ public enum UndoOverlayContent {
     case banned(text: String)
     case importedMessage(text: String)
     case audioRate(rate: CGFloat, text: String)
-    case forward(savedMessages: Bool, text: String)
+    case forward(savedMessages: Bool, text: String, jumpAvatarView: UIView? = nil, action: String? = nil)
     case autoDelete(isOn: Bool, title: String?, text: String, customUndoText: String?)
     case gigagroupConversion(text: String)
     case linkRevoked(text: String)

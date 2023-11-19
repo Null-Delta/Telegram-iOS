@@ -65,6 +65,8 @@ private func cancelOtherGestures(gesture: ContextGesture, view: UIView) {
 public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDelegate {
     public var beginDelay: Double = 0.12
     public var activateOnTap: Bool = false
+    public var wasBegin: Bool = false
+
     private var currentProgress: CGFloat = 0.0
     private var delayTimer: Timer?
     private var animator: DisplayLinkAnimator?
@@ -152,6 +154,7 @@ public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDeleg
                         case .possible:
                             strongSelf.delayTimer?.invalidate()
                             strongSelf.animator?.invalidate()
+                            strongSelf.wasBegin = true
                             strongSelf.activated?(strongSelf, location)
                             strongSelf.wasActivated = true
                             if let view = strongSelf.view {
@@ -178,29 +181,29 @@ public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDeleg
         super.touchesMoved(touches, with: event)
         
         if let touch = touches.first {
-            if #available(iOS 9.0, *) {
-                let maxForce: CGFloat = max(2.5, min(3.0, touch.maximumPossibleForce))
-                if touch.force >= maxForce {
-                    if !self.isValidated {
-                        self.isValidated = true
-                    }
-                    
-                    switch self.state {
-                    case .possible:
-                        self.delayTimer?.invalidate()
-                        self.animator?.invalidate()
-                        self.activated?(self, touch.location(in: self.view))
-                        self.wasActivated = true
-                        if let view = self.view?.superview {
-                            if let window = view.window {
-                                cancelOtherGestures(gesture: self, view: window)
-                            }
-                            cancelParentGestures(view: view)
+            let maxForce: CGFloat = max(2.5, min(3.0, touch.maximumPossibleForce))
+            if touch.force >= maxForce {
+                if !self.isValidated {
+                    self.isValidated = true
+                    self.wasBegin = true
+                }
+                
+                switch self.state {
+                case .possible:
+                    self.delayTimer?.invalidate()
+                    self.animator?.invalidate()
+                    self.wasBegin = true
+                    self.activated?(self, touch.location(in: self.view))
+                    self.wasActivated = true
+                    if let view = self.view?.superview {
+                        if let window = view.window {
+                            cancelOtherGestures(gesture: self, view: window)
                         }
-                        self.state = .began
-                    default:
-                        break
+                        cancelParentGestures(view: view)
                     }
+                    self.state = .began
+                default:
+                    break
                 }
             }
             
@@ -213,8 +216,8 @@ public final class ContextGesture: UIGestureRecognizer, UIGestureRecognizerDeleg
         
         if let touch = touches.first {
             if !self.currentProgress.isZero, self.isValidated {
-                self.currentProgress = 0.0
                 self.activationProgress?(0.0, .ended(self.currentProgress))
+                self.currentProgress = 0.0
                 if self.wasActivated {
                     self.activatedAfterCompletion?(touch.location(in: self.view), false)
                 }

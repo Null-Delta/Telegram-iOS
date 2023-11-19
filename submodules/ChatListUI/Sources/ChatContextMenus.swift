@@ -49,12 +49,12 @@ func archiveContextMenuItems(context: AccountContext, groupId: PeerGroupId, chat
     }
 }
 
-enum ChatContextMenuSource {
+public enum ChatContextMenuSource {
     case chatList(filter: ChatListFilter?)
     case search(ChatListSearchContextActionSource)
 }
 
-func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: ChatListNodeEntryPromoInfo?, source: ChatContextMenuSource, chatListController: ChatListControllerImpl?, joined: Bool) -> Signal<[ContextMenuItem], NoError> {
+public func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: ChatListNodeEntryPromoInfo?, source: ChatContextMenuSource, chatListController: ChatListControllerImpl?, joined: Bool) -> Signal<[ContextMenuItem], NoError> {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
     let strings = presentationData.strings
 

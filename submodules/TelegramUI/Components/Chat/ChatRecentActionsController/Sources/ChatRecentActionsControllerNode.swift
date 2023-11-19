@@ -576,7 +576,13 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, navigateToStory: { _, _ in
         }, attemptedNavigationToPrivateQuote: { _ in
         }, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings,
-        pollActionState: ChatInterfacePollActionState(), stickerSettings: ChatInterfaceStickerSettings(), presentationContext: ChatPresentationContext(context: context, backgroundNode: self.backgroundNode))
+        pollActionState: ChatInterfacePollActionState(), 
+        stickerSettings: ChatInterfaceStickerSettings(),
+        presentationContext: ChatPresentationContext(context: context, backgroundNode: self.backgroundNode),
+        openFastInlineSharingMenu: { _, _, _, _ in
+        },
+        activateForwardMessagePreview: { _, _, _, _ in
+        })
         self.controllerInteraction = controllerInteraction
         
         self.listNode.displayedItemRangeChanged = { [weak self] displayedRange, opaqueTransactionState in

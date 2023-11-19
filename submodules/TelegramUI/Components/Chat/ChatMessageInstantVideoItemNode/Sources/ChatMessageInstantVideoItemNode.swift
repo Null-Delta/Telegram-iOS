@@ -535,6 +535,19 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, UIGestureReco
                 } else {
                     let buttonNode = ChatMessageShareButton()
                     updatedShareButtonNode = buttonNode
+                    
+                    buttonNode.secondaryAction = { [weak self] in
+                        guard let strongSelf = self else { return }
+                        if let item = strongSelf.item {
+                            if item.content.firstMessage.id.peerId.isRepliesOrSavedMessages(accountPeerId: item.context.account.peerId) {
+                                if let forwardInfo = item.content.firstMessage.forwardInfo, let author = forwardInfo.author, let messageId = forwardInfo.sourceMessageId {
+                                    item.controllerInteraction.activateForwardMessagePreview(author.id, buttonNode.contextGesture, buttonNode, messageId)
+                                }
+                            } else {
+                                item.controllerInteraction.openFastInlineSharingMenu(item.message, buttonNode, [], buttonNode.contextGesture)
+                            }
+                        }
+                    }
                 }
             }
             
@@ -1013,6 +1026,11 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, UIGestureReco
     }
     
     @objc private func shareButtonPressed() {
+        guard !shareButtonNode!.contextGesture.wasBegin else {
+            shareButtonNode!.contextGesture.wasBegin = false
+            return
+        }
+        
         if let item = self.item {
             if case .pinnedMessages = item.associatedData.subject {
                 item.controllerInteraction.navigateToMessageStandalone(item.content.firstMessage.id)

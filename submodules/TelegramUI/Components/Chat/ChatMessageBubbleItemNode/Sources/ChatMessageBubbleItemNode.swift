@@ -3594,6 +3594,17 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 strongSelf.shareButtonNode = shareButtonNode
                 strongSelf.insertSubnode(shareButtonNode, belowSubnode: strongSelf.messageAccessibilityArea)
                 shareButtonNode.addTarget(strongSelf, action: #selector(strongSelf.shareButtonPressed), forControlEvents: .touchUpInside)
+                shareButtonNode.secondaryAction = {
+                    if let item = strongSelf.item {
+                        if item.content.firstMessage.id.peerId.isRepliesOrSavedMessages(accountPeerId: item.context.account.peerId) {
+                            if let forwardInfo = item.content.firstMessage.forwardInfo, let author = forwardInfo.author, let messageId = forwardInfo.sourceMessageId {
+                                item.controllerInteraction.activateForwardMessagePreview(author.id, strongSelf.shareButtonNode!.contextGesture, strongSelf.shareButtonNode!, messageId)
+                            }
+                        } else {
+                            item.controllerInteraction.openFastInlineSharingMenu(item.message, strongSelf.shareButtonNode!, [], strongSelf.shareButtonNode!.contextGesture)
+                        }
+                    }
+                }
             }
         } else if let shareButtonNode = strongSelf.shareButtonNode {
             strongSelf.shareButtonNode = nil
@@ -4795,6 +4806,11 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
     }
     
     @objc private func shareButtonPressed() {
+        guard !shareButtonNode!.contextGesture.wasBegin else {
+            shareButtonNode!.contextGesture.wasBegin = false
+            return
+        }
+
         if let item = self.item {
             if case .pinnedMessages = item.associatedData.subject {
                 item.controllerInteraction.navigateToMessageStandalone(item.content.firstMessage.id)

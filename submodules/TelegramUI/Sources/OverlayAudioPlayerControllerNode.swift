@@ -176,7 +176,13 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, UIGestu
         }, scrollToMessageId: { _ in
         }, navigateToStory: { _, _ in
         }, attemptedNavigationToPrivateQuote: { _ in
-        }, automaticMediaDownloadSettings: MediaAutoDownloadSettings.defaultSettings, pollActionState: ChatInterfacePollActionState(), stickerSettings: ChatInterfaceStickerSettings(), presentationContext: ChatPresentationContext(context: context, backgroundNode: nil))
+        }, automaticMediaDownloadSettings: MediaAutoDownloadSettings.defaultSettings, 
+        pollActionState: ChatInterfacePollActionState(),
+        stickerSettings: ChatInterfaceStickerSettings(),
+        presentationContext: ChatPresentationContext(context: context, backgroundNode: nil),
+        openFastInlineSharingMenu: { _, _, _, _ in },
+        activateForwardMessagePreview: { _, _, _, _ in }
+        )
         
         self.dimNode = ASDisplayNode()
         self.dimNode.backgroundColor = UIColor(white: 0.0, alpha: 0.5)
