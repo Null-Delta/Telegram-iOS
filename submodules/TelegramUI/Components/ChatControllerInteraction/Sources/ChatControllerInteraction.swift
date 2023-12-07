@@ -227,7 +227,7 @@ public final class ChatControllerInteraction {
     public var playNextOutgoingGift: Bool = false
     public var enableFullTranslucency: Bool = true
     public let openFastInlineSharingMenu: (Message, ASDisplayNode, [Peer], ContextGesture) -> Void
-    public let activateForwardMessagePreview: (PeerId, ContextGesture, ASDisplayNode, MessageId) -> Void
+    public let activateForwardMessagePreview: (MessageId, Peer, ContextGesture, ASDisplayNode, MessageId) -> Void
 
     public init(
         openMessage: @escaping (Message, ChatControllerInteractionOpenMessageMode) -> Bool,
@@ -330,7 +330,7 @@ public final class ChatControllerInteraction {
         stickerSettings: ChatInterfaceStickerSettings,
         presentationContext: ChatPresentationContext,
         openFastInlineSharingMenu: @escaping (Message, ASDisplayNode, [Peer], ContextGesture) -> Void,
-        activateForwardMessagePreview: @escaping (PeerId, ContextGesture, ASDisplayNode, MessageId) -> Void
+        activateForwardMessagePreview: @escaping (MessageId, Peer, ContextGesture, ASDisplayNode, MessageId) -> Void
     ) {
         self.openMessage = openMessage
         self.openPeer = openPeer

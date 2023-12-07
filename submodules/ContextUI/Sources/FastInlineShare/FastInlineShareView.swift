@@ -21,7 +21,19 @@ private func clearBlur(effect: UIVisualEffectView) {
         }
 
     if let sublayer = effect.layer.sublayers?[0], let filters = sublayer.filters {
-        sublayer.backgroundColor = nil
+        if #available(iOS 13.0, *) {
+            sublayer.backgroundColor = UIColor.init(dynamicProvider: { traitCollection in
+                switch traitCollection.userInterfaceStyle {
+                case .dark:
+                    return UIColor.black.withAlphaComponent(0.33)
+                default:
+                    return UIColor.white.withAlphaComponent(0.2)
+                }
+            }).cgColor
+        } else {
+            sublayer.backgroundColor = UIColor.white.withAlphaComponent(0.2).cgColor
+        }
+
         sublayer.isOpaque = false
         let allowedKeys: [String] = [
             "gaussianBlur"

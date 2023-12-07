@@ -1179,7 +1179,8 @@ final class PeerInfoAvatarListNode: ASDisplayNode {
         self.listContainerNode = PeerInfoAvatarListContainerNode(context: context, isSettings: isSettings)
         self.listContainerNode.clipsToBounds = true
         self.listContainerNode.isHidden = true
-        
+        self.listContainerNode.backgroundColor = .red
+
         self.topCoverNode = DynamicIslandBlurNode()
         
         super.init()

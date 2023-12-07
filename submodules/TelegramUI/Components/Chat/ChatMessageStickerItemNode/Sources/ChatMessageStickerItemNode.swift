@@ -761,7 +761,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                         if let item = strongSelf.item {
                             if item.content.firstMessage.id.peerId.isRepliesOrSavedMessages(accountPeerId: item.context.account.peerId) {
                                 if let forwardInfo = item.content.firstMessage.forwardInfo, let author = forwardInfo.author, let messageId = forwardInfo.sourceMessageId {
-                                    item.controllerInteraction.activateForwardMessagePreview(author.id, buttonNode.contextGesture, buttonNode, messageId)
+                                    item.controllerInteraction.activateForwardMessagePreview(item.content.firstMessage.id, author, buttonNode.contextGesture, buttonNode, messageId)
                                 }
                             } else {
                                 item.controllerInteraction.openFastInlineSharingMenu(item.message, buttonNode, [], buttonNode.contextGesture)

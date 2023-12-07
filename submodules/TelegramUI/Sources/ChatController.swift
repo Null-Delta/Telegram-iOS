@@ -4997,14 +4997,22 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
 
                     var peerName =  EnginePeer(peer).displayTitle(strings: strongSelf.presentationData.strings, displayOrder: strongSelf.presentationData.nameDisplayOrder)
                     peerName = peerName.replacingOccurrences(of: "**", with: "")
-                    let text = strongSelf.presentationData.strings.Conversation_ForwardTooltip_Chat_One(peerName).string
+                    let text: String
+
+                    if peer.id == strongSelf.context.account.peerId {
+                        text = strongSelf.presentationData.strings.Conversation_ForwardTooltip_SavedMessages_One
+                    } else {
+                        text = strongSelf.presentationData.strings.Conversation_ForwardTooltip_Chat_One(peerName).string
+                    }
 
                     let undoController = UndoOverlayController(
                         presentationData: strongSelf.presentationData,
                         content: .forward(savedMessages: false, text: text, jumpAvatarView: view, action: "View"),
                         elevatedLayout: false,
                         animateInAsReplacement: true,
-                        action: { action in
+                        action: { [weak self] action in
+                            guard let strongSelf = self else { return false }
+
                             switch action {
                             case .commit:
                                 return true
@@ -5026,16 +5034,24 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             )
             strongSelf.present(controller, in: .current)
         },
-        activateForwardMessagePreview: { [weak self] peerId, gesture, node, messageId in
+        activateForwardMessagePreview: { [weak self] fromMessageId, peer, gesture, node, toMessageId in
             guard let strongSelf = self else { return }
             
-            let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: .peer(id: peerId), subject: .message(id: .id(messageId), highlight: .some(.init()), timecode: nil), botStart: nil, mode: .standard(previewing: true))
+            let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: .peer(id: peer.id), subject: .message(id: .id(toMessageId), highlight: .init(), timecode: nil), botStart: nil, mode: .standard(previewing: true))
             chatController.canReadHistory.set(false)
 
             let source: ContextContentSource = .controller(ChatContextControllerContentSourceImpl(controller: chatController, sourceNode: node, passthroughTouches: true))
+            var contextController: ContextController? = nil
 
-            let contextController = ContextController(presentationData: strongSelf.presentationData, source: source, items: chatContextMenuItems(context: strongSelf.context, peerId: peerId, promoInfo: nil, source: .chatList(filter: nil), chatListController: nil, joined: false) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
-            strongSelf.presentInGlobalOverlay(contextController)
+            let actions = chatContextMenuItems(context: strongSelf.context, peerId: peer.id, promoInfo: nil, source: .chatList(filter: nil), chatListController: nil, joined: false, onChatOpen: { [weak self] in
+                guard let strongSelf = self else { return }
+                strongSelf.controllerInteraction?.navigateToMessage(fromMessageId, toMessageId, NavigateToMessageParams(timestamp: nil, quote: nil))
+            }) |> map {
+                return ContextController.Items(content: .list($0))
+            }
+
+            contextController = ContextController(presentationData: strongSelf.presentationData, source: source, items: actions, gesture: gesture)
+            strongSelf.presentInGlobalOverlay(contextController!)
         })
         controllerInteraction.enableFullTranslucency = context.sharedContext.energyUsageSettings.fullTranslucency
         
@@ -6808,7 +6824,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
 
         fastInlineSharePeersDisposable.set (
             combineLatest(
-                context.engine.peers.recentPeers(),
+                context.engine.peers.managedUpdatedRecentPeers(),
+                _internal_recentPeers(accountPeerId: context.account.peerId, postbox: context.account.postbox),
                 context.engine.peers.getChatListPeers(filterPredicate: chatListFilterPredicate(
                     filter: .init(
                         isShared: false,
@@ -6823,7 +6840,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     accountPeerId: context.account.peerId
                 )),
                 context.account.postbox.loadedPeerWithId(context.account.peerId)
-            ).start(next: { [weak self] (recentPeers, personalPeers, savedMessages) in
+            ).start(next: { [weak self] (_, recentPeers, personalPeers, savedMessages) in
                 guard let strongSelf = self else { return }
                 let peers: RecentPeers = recentPeers
                 

@@ -46,8 +46,8 @@ public class ChatMessageShareButton: HighlightableButtonNode {
             let scale = 1 - progress / 8.0
             if progress != 0 {
                 self?.transform = CATransform3DScale(CATransform3DIdentity, scale, scale, 1)
-            } else if case let .ended(value) = context, value != 1 {
-                UIView.animate(withDuration: 0.3) {
+            } else if case .ended(_) = context {
+                UIView.animate(withDuration: 0.3) { [weak self] in
                     self?.transform = CATransform3DIdentity
                 }
             }

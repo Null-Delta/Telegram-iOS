@@ -54,7 +54,7 @@ public enum ChatContextMenuSource {
     case search(ChatListSearchContextActionSource)
 }
 
-public func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: ChatListNodeEntryPromoInfo?, source: ChatContextMenuSource, chatListController: ChatListControllerImpl?, joined: Bool) -> Signal<[ContextMenuItem], NoError> {
+public func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: ChatListNodeEntryPromoInfo?, source: ChatContextMenuSource, chatListController: ChatListControllerImpl?, joined: Bool, onChatOpen: (() -> Void)?) -> Signal<[ContextMenuItem], NoError> {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
     let strings = presentationData.strings
 
@@ -145,6 +145,16 @@ public func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoI
                     }
 
                     let isSavedMessages = peerId == context.account.peerId
+
+                    
+                    if let onChatOpen = onChatOpen {
+                        items.append(.action(ContextMenuActionItem(text: strings.ChatList_ContextOpenChannel, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/GoToMessage"), color: theme.contextMenu.primaryColor) }, action: { c, f in
+                            onChatOpen()
+                            c.dismiss(completion: {
+                                f(.default)
+                            })
+                        })))
+                    }
 
                     if !isSavedMessages, case let .user(peer) = peer, !peer.flags.contains(.isSupport), peer.botInfo == nil && !peer.isDeleted {
                         if !isContact {
@@ -330,7 +340,7 @@ public func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoI
                                 updatedItems.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_Back, icon: { theme in
                                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Back"), color: theme.contextMenu.primaryColor)
                                 }, iconPosition: .left, action: { c, _ in
-                                    c.setItems(chatContextMenuItems(context: context, peerId: peerId, promoInfo: promoInfo, source: source, chatListController: chatListController, joined: joined) |> map { ContextController.Items(content: .list($0)) }, minHeight: nil, animated: true)
+                                    c.setItems(chatContextMenuItems(context: context, peerId: peerId, promoInfo: promoInfo, source: source, chatListController: chatListController, joined: joined, onChatOpen: nil) |> map { ContextController.Items(content: .list($0)) }, minHeight: nil, animated: true)
                                 })))
 
                                 c.setItems(.single(ContextController.Items(content: .list(updatedItems))), minHeight: nil, animated: true)

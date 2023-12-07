@@ -181,7 +181,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, UIGestu
         stickerSettings: ChatInterfaceStickerSettings(),
         presentationContext: ChatPresentationContext(context: context, backgroundNode: nil),
         openFastInlineSharingMenu: { _, _, _, _ in },
-        activateForwardMessagePreview: { _, _, _, _ in }
+        activateForwardMessagePreview: { _, _, _, _, _ in }
         )
         
         self.dimNode = ASDisplayNode()

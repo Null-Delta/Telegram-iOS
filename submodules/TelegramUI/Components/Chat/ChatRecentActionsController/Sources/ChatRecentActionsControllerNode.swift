@@ -581,7 +581,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         presentationContext: ChatPresentationContext(context: context, backgroundNode: self.backgroundNode),
         openFastInlineSharingMenu: { _, _, _, _ in
         },
-        activateForwardMessagePreview: { _, _, _, _ in
+        activateForwardMessagePreview: { _, _, _, _, _ in
         })
         self.controllerInteraction = controllerInteraction
         
