@@ -27,10 +27,12 @@ swift_library(
         "//submodules/Markdown",
         "//submodules/RadialStatusNode",
         "//submodules/ComponentFlow",
+        "//submodules/PresentationDataUtils",
         "//submodules/TelegramUI/Components/AudioTranscriptionPendingIndicatorComponent",
         "//submodules/TelegramUI/Components/Chat/ChatMessageBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageItemCommon",
         "//submodules/TelegramUI/Components/WallpaperPreviewMedia",
+        "//submodules/TelegramUI/Components/ChatControllerInteraction",
     ],
     visibility = [
         "//visibility:public",

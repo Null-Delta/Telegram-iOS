@@ -1384,7 +1384,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                         for attribute in item.message.attributes {
                             if let attribute = attribute as? ReplyMessageAttribute {
                                 return .optionalAction({
-                                    item.controllerInteraction.navigateToMessage(item.message.id, attribute.messageId, NavigateToMessageParams(timestamp: nil, quote: attribute.isQuote ? attribute.quote?.text : nil))
+                                    item.controllerInteraction.navigateToMessage(item.message.id, attribute.messageId, NavigateToMessageParams(timestamp: nil, quote: attribute.isQuote ? attribute.quote.flatMap { quote in NavigateToMessageParams.Quote(string: quote.text, offset: quote.offset) } : nil))
                                 })
                             } else if let attribute = attribute as? ReplyStoryAttribute {
                                 return .optionalAction({
@@ -1413,7 +1413,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                                 }
                                 item.controllerInteraction.navigateToMessage(item.message.id, sourceMessageId, NavigateToMessageParams(timestamp: nil, quote: nil))
                             } else if let peer = forwardInfo.source ?? forwardInfo.author {
-                                item.controllerInteraction.openPeer(EnginePeer(peer), peer is TelegramUser ? .info : .chat(textInputState: nil, subject: nil, peekData: nil), nil, .default)
+                                item.controllerInteraction.openPeer(EnginePeer(peer), peer is TelegramUser ? .info(nil) : .chat(textInputState: nil, subject: nil, peekData: nil), nil, .default)
                             } else if let _ = forwardInfo.authorSignature {
                                 item.controllerInteraction.displayMessageTooltip(item.message.id, item.presentationData.strings.Conversation_ForwardAuthorHiddenTooltip, forwardInfoNode, nil)
                             }
@@ -1429,7 +1429,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
             
                 if let item = self.item, self.imageNode.frame.contains(location) {
                     return .optionalAction({
-                        let _ = item.controllerInteraction.openMessage(item.message, .default)
+                        let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
                     })
                 }
             
@@ -2069,5 +2069,22 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
     
     override public func contentFrame() -> CGRect {
         return self.imageNode.frame
+    }
+    
+    override public func makeContentSnapshot() -> (UIImage, CGRect)? {
+        UIGraphicsBeginImageContextWithOptions(self.imageNode.view.bounds.size, false, 0.0)
+        let context = UIGraphicsGetCurrentContext()!
+        
+        context.translateBy(x: -self.imageNode.frame.minX, y: -self.imageNode.frame.minY)
+        self.view.layer.render(in: context)
+        
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        guard let image else {
+            return nil
+        }
+        
+        return (image, self.imageNode.frame)
     }
 }

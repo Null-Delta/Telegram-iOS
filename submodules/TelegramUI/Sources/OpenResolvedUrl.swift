@@ -41,14 +41,30 @@ private func defaultNavigationForPeerId(_ peerId: PeerId?, navigation: ChatContr
                 return .chat(textInputState: nil, subject: nil, peekData: nil)
             }
         } else {
-            return .info
+            return .info(nil)
         }
     } else {
         return navigation
     }
 }
 
-func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, urlContext: OpenURLContext, navigationController: NavigationController?, forceExternal: Bool, openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer) -> Void, sendFile: ((FileMediaReference) -> Void)?, sendSticker: ((FileMediaReference, UIView, CGRect) -> Bool)?, requestMessageActionUrlAuth: ((MessageActionUrlSubject) -> Void)? = nil, joinVoiceChat: ((PeerId, String?, CachedChannelData.ActiveCall) -> Void)?, present: @escaping (ViewController, Any?) -> Void, dismissInput: @escaping () -> Void, contentContext: Any?) {
+func openResolvedUrlImpl(
+    _ resolvedUrl: ResolvedUrl,
+    context: AccountContext,
+    urlContext: OpenURLContext,
+    navigationController: NavigationController?,
+    forceExternal: Bool,
+    openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer) -> Void,
+    sendFile: ((FileMediaReference) -> Void)?,
+    sendSticker: ((FileMediaReference, UIView, CGRect) -> Bool)?,
+    requestMessageActionUrlAuth: ((MessageActionUrlSubject) -> Void)? = nil,
+    joinVoiceChat: ((PeerId, String?, CachedChannelData.ActiveCall) -> Void)?,
+    present: @escaping (ViewController, Any?) -> Void,
+    dismissInput: @escaping () -> Void,
+    contentContext: Any?,
+    progress: Promise<Bool>?,
+    completion: (() -> Void)?
+) {
     let updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?
     if case let .chat(_, maybeUpdatedPresentationData) = urlContext {
         updatedPresentationData = maybeUpdatedPresentationData
@@ -830,6 +846,7 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
                             }
                         )
                         navigationController?.pushViewController(storyContainerScreen)
+                        completion?()
                     })
                 } else {
                     var elevatedLayout = true
@@ -890,7 +907,32 @@ func openResolvedUrlImpl(_ resolvedUrl: ResolvedUrl, context: AccountContext, ur
             if let updatedPresentationData, updatedPresentationData.initial.theme.overallDarkAppearance {
                 forceDark = true
             }
-            let _ = (context.engine.payments.checkPremiumGiftCode(slug: slug)
+        
+            let progressSignal = Signal<Never, NoError> { subscriber in
+                if let progress {
+                    progress.set(.single(true))
+                    return ActionDisposable {
+                        Queue.mainQueue().async() {
+                            progress.set(.single(false))
+                        }
+                    }
+                } else {
+                    return EmptyDisposable
+                }
+            }
+            |> runOn(Queue.mainQueue())
+            |> delay(0.25, queue: Queue.mainQueue())
+            let progressDisposable = progressSignal.startStrict()
+            
+            var signal = context.engine.payments.checkPremiumGiftCode(slug: slug)
+            signal = signal
+            |> afterDisposed {
+                Queue.mainQueue().async {
+                    progressDisposable.dispose()
+                }
+            }
+        
+            let _ = (signal
             |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] giftCode in
                 if let giftCode {
                     var dismissImpl: (() -> Void)?

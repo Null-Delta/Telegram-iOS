@@ -72,6 +72,9 @@ public enum PresentationResourceKey: Int32 {
     case itemListTopicArrowIcon
     case itemListAddBoostsIcon
     
+    case statsReactionsIcon
+    case statsForwardsIcon
+    
     case itemListVoiceCallIcon
     case itemListVideoCallIcon
     
@@ -208,16 +211,7 @@ public enum PresentationResourceKey: Int32 {
     case chatInputSearchPanelDownDisabledImage
     case chatInputSearchPanelCalendarImage
     case chatInputSearchPanelMembersImage
-    
-    case chatTitlePanelInfoImage
-    case chatTitlePanelSearchImage
-    case chatTitlePanelUnarchiveImage
-    case chatTitlePanelMuteImage
-    case chatTitlePanelUnmuteImage
-    case chatTitlePanelCallImage
-    case chatTitlePanelReportImage
-    case chatTitlePanelGroupingImage
-    
+        
     case chatHistoryNavigationButtonImage
     case chatHistoryMentionsButtonImage
     case chatHistoryReactionsButtonImage

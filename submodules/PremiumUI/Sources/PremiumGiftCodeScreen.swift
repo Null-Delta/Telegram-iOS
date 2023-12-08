@@ -228,7 +228,7 @@ private final class PremiumGiftCodeSheetContent: CombinedComponent {
                     additionalText = ""
                 }
                 buttonText = strings.Common_OK
-                if boost.flags.contains(.isUnclaimed), let slug = boost.slug {
+                if let slug = boost.slug {
                     link = "https://t.me/giftcode/\(slug)"
                 } else {
                     link = nil
@@ -370,13 +370,13 @@ private final class PremiumGiftCodeSheetContent: CombinedComponent {
                     component: AnyComponent(
                         Button(
                             content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: giftReason, font: tableFont, textColor: giftCode.messageId != nil ? tableLinkColor : tableTextColor)))),
-                            isEnabled: true,
+                            automaticHighlight: giftCode.messageId != nil,
                             action: {
                                 if let messageId = giftCode.messageId {
                                     component.openMessage(messageId)
-                                }
-                                Queue.mainQueue().after(1.0) {
-                                    component.cancel(false)
+                                    Queue.mainQueue().after(1.0) {
+                                        component.cancel(false)
+                                    }
                                 }
                             }
                         )
@@ -391,13 +391,13 @@ private final class PremiumGiftCodeSheetContent: CombinedComponent {
                         component: AnyComponent(
                             Button(
                                 content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: giftReason, font: tableFont, textColor: boost.giveawayMessageId != nil ? tableLinkColor : tableTextColor)))),
-                                isEnabled: true,
+                                automaticHighlight: boost.giveawayMessageId != nil,
                                 action: {
                                     if let messageId = boost.giveawayMessageId {
                                         component.openMessage(messageId)
-                                    }
-                                    Queue.mainQueue().after(1.0) {
-                                        component.cancel(false)
+                                        Queue.mainQueue().after(1.0) {
+                                            component.cancel(false)
+                                        }
                                     }
                                 }
                             )

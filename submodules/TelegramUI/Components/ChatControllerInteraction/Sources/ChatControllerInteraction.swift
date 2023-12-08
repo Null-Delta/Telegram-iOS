@@ -19,10 +19,20 @@ import AnimationCache
 import MultiAnimationRenderer
 
 public struct ChatInterfaceHighlightedState: Equatable {
-    public let messageStableId: UInt32
-    public let quote: String?
+    public struct Quote: Equatable {
+        public var string: String
+        public var offset: Int?
+        
+        public init(string: String, offset: Int?) {
+            self.string = string
+            self.offset = offset
+        }
+    }
     
-    public init(messageStableId: UInt32, quote: String?) {
+    public let messageStableId: UInt32
+    public let quote: Quote?
+    
+    public init(messageStableId: UInt32, quote: Quote?) {
         self.messageStableId = messageStableId
         self.quote = quote
     }
@@ -74,18 +84,38 @@ public protocol ChatMessageTransitionProtocol: ASDisplayNode {
 }
 
 public struct NavigateToMessageParams {
+    public struct Quote {
+        public var string: String
+        public var offset: Int?
+        
+        public init(string: String, offset: Int?) {
+            self.string = string
+            self.offset = offset
+        }
+    }
+    
     public var timestamp: Double?
-    public var quote: String?
+    public var quote: Quote?
     public var progress: Promise<Bool>?
     
-    public init(timestamp: Double?, quote: String?, progress: Promise<Bool>? = nil) {
+    public init(timestamp: Double?, quote: Quote?, progress: Promise<Bool>? = nil) {
         self.timestamp = timestamp
         self.quote = quote
         self.progress = progress
     }
 }
 
-public final class ChatControllerInteraction {
+public struct OpenMessageParams {
+    public var mode: ChatControllerInteractionOpenMessageMode
+    public var progress: Promise<Bool>?
+    
+    public init(mode: ChatControllerInteractionOpenMessageMode, progress: Promise<Bool>? = nil) {
+        self.mode = mode
+        self.progress = progress
+    }
+}
+
+public final class ChatControllerInteraction: ChatControllerInteractionProtocol {
     public enum OpenPeerSource {
         case `default`
         case reaction
@@ -110,7 +140,7 @@ public final class ChatControllerInteraction {
         }
     }
     
-    public let openMessage: (Message, ChatControllerInteractionOpenMessageMode) -> Bool
+    public let openMessage: (Message, OpenMessageParams) -> Bool
     public let openPeer: (EnginePeer, ChatControllerInteractionNavigateToPeer, MessageReference?, OpenPeerSource) -> Void
     public let openPeerMention: (String, Promise<Bool>?) -> Void
     public let openMessageContextMenu: (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?, CGPoint?) -> Void
@@ -199,6 +229,8 @@ public final class ChatControllerInteraction {
     public let saveMediaToFiles: (EngineMessage.Id) -> Void
     public let openNoAdsDemo: () -> Void
     public let displayGiveawayParticipationStatus: (EngineMessage.Id) -> Void
+    public let openPremiumStatusInfo: (EnginePeer.Id, UIView, Int64?, PeerNameColor) -> Void
+    public let openRecommendedChannelContextMenu: (EnginePeer, UIView, ContextGesture?) -> Void
     
     public let requestMessageUpdate: (MessageId, Bool) -> Void
     public let cancelInteractiveKeyboardGestures: () -> Void
@@ -225,12 +257,13 @@ public final class ChatControllerInteraction {
     public var updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?
     public let presentationContext: ChatPresentationContext
     public var playNextOutgoingGift: Bool = false
+    public var recommendedChannelsOpenUp: Bool = false
     public var enableFullTranslucency: Bool = true
     public let openFastInlineSharingMenu: (Message, ASDisplayNode, [Peer], ContextGesture) -> Void
     public let activateForwardMessagePreview: (MessageId, Peer, ContextGesture, ASDisplayNode, MessageId) -> Void
 
     public init(
-        openMessage: @escaping (Message, ChatControllerInteractionOpenMessageMode) -> Bool,
+        openMessage: @escaping (Message, OpenMessageParams) -> Bool,
         openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer, MessageReference?, OpenPeerSource) -> Void,
         openPeerMention: @escaping (String, Promise<Bool>?) -> Void,
         openMessageContextMenu: @escaping (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?, CGPoint?) -> Void,
@@ -319,6 +352,8 @@ public final class ChatControllerInteraction {
         saveMediaToFiles: @escaping (EngineMessage.Id) -> Void,
         openNoAdsDemo: @escaping () -> Void,
         displayGiveawayParticipationStatus: @escaping (EngineMessage.Id) -> Void,
+        openPremiumStatusInfo: @escaping (EnginePeer.Id, UIView, Int64?, PeerNameColor) -> Void,
+        openRecommendedChannelContextMenu: @escaping (EnginePeer, UIView, ContextGesture?) -> Void,
         requestMessageUpdate: @escaping (MessageId, Bool) -> Void,
         cancelInteractiveKeyboardGestures: @escaping () -> Void,
         dismissTextInput: @escaping () -> Void,
@@ -421,6 +456,8 @@ public final class ChatControllerInteraction {
         self.saveMediaToFiles = saveMediaToFiles
         self.openNoAdsDemo = openNoAdsDemo
         self.displayGiveawayParticipationStatus = displayGiveawayParticipationStatus
+        self.openPremiumStatusInfo = openPremiumStatusInfo
+        self.openRecommendedChannelContextMenu = openRecommendedChannelContextMenu
         self.requestMessageUpdate = requestMessageUpdate
         self.cancelInteractiveKeyboardGestures = cancelInteractiveKeyboardGestures
         self.dismissTextInput = dismissTextInput

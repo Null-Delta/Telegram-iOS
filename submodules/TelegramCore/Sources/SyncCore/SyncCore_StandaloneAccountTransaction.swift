@@ -113,6 +113,13 @@ public let telegramPostboxSeedConfiguration: SeedConfiguration = {
                     break
                 }
             }
+            var derivedData: DerivedDataMessageAttribute?
+            for attribute in previous {
+                if let attribute = attribute as? DerivedDataMessageAttribute {
+                    derivedData = attribute
+                    break
+                }
+            }
             
             if let audioTranscription = audioTranscription {
                 var found = false
@@ -127,12 +134,25 @@ public let telegramPostboxSeedConfiguration: SeedConfiguration = {
                     updated.append(audioTranscription)
                 }
             }
+            if let derivedData = derivedData {
+                var found = false
+                for i in 0 ..< updated.count {
+                    if let attribute = updated[i] as? DerivedDataMessageAttribute {
+                        updated[i] = derivedData
+                        found = true
+                        break
+                    }
+                }
+                if !found {
+                    updated.append(derivedData)
+                }
+            }
         },
         decodeMessageThreadInfo: { entry in
             guard let data = entry.get(MessageHistoryThreadData.self) else {
                 return nil
             }
-            return Message.AssociatedThreadInfo(title: data.info.title, icon: data.info.icon, iconColor: data.info.iconColor)
+            return Message.AssociatedThreadInfo(title: data.info.title, icon: data.info.icon, iconColor: data.info.iconColor, isClosed: data.isClosed)
         },
         decodeAutoremoveTimeout: { cachedData in
             if let cachedData = cachedData as? CachedUserData {
@@ -149,6 +169,14 @@ public let telegramPostboxSeedConfiguration: SeedConfiguration = {
                 }
             }
             return nil
+        },
+        decodeDisplayPeerAsRegularChat: { cachedData in
+            if let cachedData = cachedData as? CachedChannelData {
+                if case let .known(value) = cachedData.viewForumAsMessages {
+                    return value
+                }
+            }
+            return false
         },
         isPeerUpgradeMessage: { message in
             for media in message.media {
