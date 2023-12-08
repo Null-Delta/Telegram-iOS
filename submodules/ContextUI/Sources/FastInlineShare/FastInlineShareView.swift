@@ -27,11 +27,11 @@ private func clearBlur(effect: UIVisualEffectView) {
                 case .dark:
                     return UIColor.black.withAlphaComponent(0.33)
                 default:
-                    return UIColor.white.withAlphaComponent(0.2)
+                    return UIColor.white.withAlphaComponent(0.33)
                 }
             }).cgColor
         } else {
-            sublayer.backgroundColor = UIColor.white.withAlphaComponent(0.2).cgColor
+            sublayer.backgroundColor = UIColor.white.withAlphaComponent(0.33).cgColor
         }
 
         sublayer.isOpaque = false
@@ -43,6 +43,10 @@ private func clearBlur(effect: UIVisualEffectView) {
                 return true
             }
             let filterName = String(describing: filter)
+            if filterName == "gaussianBlur" {
+                filter.setValue(20, forKey: "inputRadius")
+            }
+
             if !allowedKeys.contains(filterName) {
                 return false
             }
@@ -94,7 +98,7 @@ public final class FastInlineShareBackground: UIView {
         container.frame = CGRect(x: 0, y: 0, width: 192, height: 192)
         
         container.layer.shadowRadius = 6
-        container.layer.shadowOpacity = 0.15
+        container.layer.shadowOpacity = 0.1
         container.layer.shadowColor = UIColor.black.cgColor
 
         addSubview(shadowBlur)

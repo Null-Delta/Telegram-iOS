@@ -857,7 +857,8 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.iconNode = nil
                 self.iconCheckNode = nil
                 self.animationNode = nil
-            
+                self.jumpAvatarView = nil
+
                 let imageBoundingSize = CGSize(width: 34.0, height: 34.0)
             
                 let emojiStatus = ComponentView<Empty>()

@@ -6567,9 +6567,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             })
         }
 
-        fastInlineSharePeersDisposable.set (
+        let disposableSet = DisposableSet()
+        disposableSet.add(context.engine.peers.managedUpdatedRecentPeers().startStrict())
+        disposableSet.add(
             combineLatest(
-                context.engine.peers.managedUpdatedRecentPeers(),
                 _internal_recentPeers(accountPeerId: context.account.peerId, postbox: context.account.postbox),
                 context.engine.peers.getChatListPeers(filterPredicate: chatListFilterPredicate(
                     filter: .init(
@@ -6585,7 +6586,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     accountPeerId: context.account.peerId
                 )),
                 context.account.postbox.loadedPeerWithId(context.account.peerId)
-            ).start(next: { [weak self] (_, recentPeers, personalPeers, savedMessages) in
+            ).start(next: { [weak self] (recentPeers, personalPeers, savedMessages) in
                 guard let strongSelf = self else { return }
                 let peers: RecentPeers = recentPeers
                 
@@ -6624,6 +6625,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 }
             })
         )
+
+        fastInlineSharePeersDisposable.set(disposableSet)
     }
     
     required public init(coder aDecoder: NSCoder) {
