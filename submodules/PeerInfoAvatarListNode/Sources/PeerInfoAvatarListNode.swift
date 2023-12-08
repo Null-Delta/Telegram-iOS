@@ -580,7 +580,15 @@ private final class VariableBlurView: UIVisualEffectView {
             }
         }
     }
-    
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        if #available(iOS 13.0, *) {
+            if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+                resetEffect()
+            }
+        }
+    }
+
     init(gradientMask: UIImage, maxBlurRadius: CGFloat = 20) {
         self.gradientMask = gradientMask
         self.maxBlurRadius = maxBlurRadius
