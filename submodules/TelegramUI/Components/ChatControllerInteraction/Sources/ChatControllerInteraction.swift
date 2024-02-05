@@ -142,6 +142,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     
     public let openMessage: (Message, OpenMessageParams) -> Bool
     public let openPeer: (EnginePeer, ChatControllerInteractionNavigateToPeer, MessageReference?, OpenPeerSource) -> Void
+    public let openContactPreview: (TelegramMediaContact?, Peer?) -> Void
     public let openPeerMention: (String, Promise<Bool>?) -> Void
     public let openMessageContextMenu: (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?, CGPoint?) -> Void
     public let updateMessageReaction: (Message, ChatControllerInteractionReaction, Bool) -> Void
@@ -264,6 +265,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     public init(
         openMessage: @escaping (Message, OpenMessageParams) -> Bool,
         openPeer: @escaping (EnginePeer, ChatControllerInteractionNavigateToPeer, MessageReference?, OpenPeerSource) -> Void,
+        openContactPreview: @escaping (TelegramMediaContact?, Peer?) -> Void,
         openPeerMention: @escaping (String, Promise<Bool>?) -> Void,
         openMessageContextMenu: @escaping (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?, CGPoint?) -> Void,
         openMessageReactionContextMenu: @escaping (Message, ContextExtractedContentContainingView, ContextGesture?, MessageReaction.Reaction) -> Void,
@@ -366,6 +368,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     ) {
         self.openMessage = openMessage
         self.openPeer = openPeer
+        self.openContactPreview = openContactPreview
         self.openPeerMention = openPeerMention
         self.openMessageContextMenu = openMessageContextMenu
         self.openMessageReactionContextMenu = openMessageReactionContextMenu

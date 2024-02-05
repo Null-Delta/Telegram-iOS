@@ -8,10 +8,15 @@ enum RootNavigationLayout {
     case flat([ViewController])
 }
 
+public protocol ModalDismissableDelegate: AnyObject {
+    var isDismissable: Bool { get }
+}
+
 struct ModalContainerLayout {
     var controllers: [ViewController]
     var isFlat: Bool
     var isStandalone: Bool
+    weak var dismissableDelegate: ModalDismissableDelegate?
 }
 
 struct NavigationLayout {
@@ -51,10 +56,16 @@ func makeNavigationLayout(mode: NavigationControllerMode, layout: ContainerViewL
                 requiresModal = true
             }
         }
+
+        var dismissableDelegate: ModalDismissableDelegate? = nil
+        if let delegate = controller as? ModalDismissableDelegate {
+            dismissableDelegate = delegate
+        }
+
         if requiresModal {
             controller._presentedInModal = true
             if beginsModal || modalStack.isEmpty || modalStack[modalStack.count - 1].isStandalone {
-                modalStack.append(ModalContainerLayout(controllers: [controller], isFlat: isFlat, isStandalone: isStandalone))
+                modalStack.append(ModalContainerLayout(controllers: [controller], isFlat: isFlat, isStandalone: isStandalone, dismissableDelegate: dismissableDelegate))
             } else {
                 modalStack[modalStack.count - 1].controllers.append(controller)
             }
@@ -64,7 +75,7 @@ func makeNavigationLayout(mode: NavigationControllerMode, layout: ContainerViewL
                 controller._presentedInModal = true
             }
             if modalStack[modalStack.count - 1].isStandalone {
-                modalStack.append(ModalContainerLayout(controllers: [controller], isFlat: isFlat, isStandalone: isStandalone))
+                modalStack.append(ModalContainerLayout(controllers: [controller], isFlat: isFlat, isStandalone: isStandalone, dismissableDelegate: dismissableDelegate))
             } else {
                 modalStack[modalStack.count - 1].controllers.append(controller)
             }

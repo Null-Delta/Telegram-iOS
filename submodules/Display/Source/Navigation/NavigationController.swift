@@ -492,6 +492,7 @@ open class NavigationController: UINavigationController, ContainableController, 
                 modalContainer = NavigationModalContainer(theme: self.theme, isFlat: navigationLayout.modal[i].isFlat, controllerRemoved: { [weak self] controller in
                     self?.controllerRemoved(controller)
                 })
+                modalContainer.dismissableDelegate = navigationLayout.modal[i].dismissableDelegate
                 modalContainer.container.statusBarStyleUpdated = { [weak self] transition in
                     guard let strongSelf = self else {
                         return

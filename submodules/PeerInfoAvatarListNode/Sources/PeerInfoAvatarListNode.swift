@@ -1600,7 +1600,7 @@ public final class PeerInfoAvatarListContainerNode: ASDisplayNode {
             } else {
                 self.stripNodes[i].isHidden = false
             }
-            let stripFrame = CGRect(origin: CGPoint(x: stripOffset + stripX, y: 0.0), size: CGSize(width: stripWidth + 1.0, height: 2.0))
+            let stripFrame = CGRect(origin: CGPoint(x: stripOffset + stripX, y: 4.0), size: CGSize(width: stripWidth + 1.0, height: 2.0))
             stripTransition.updateFrame(node: self.stripNodes[i], frame: stripFrame)
         }
         

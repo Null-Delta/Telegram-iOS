@@ -171,7 +171,7 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
     }
         
     var removedPhotoResourceIds = Set<String>()
-    func update(peer: Peer?, threadId: Int64?, threadInfo: EngineMessageHistoryThread.Info?, item: PeerInfoAvatarListItem?, theme: PresentationTheme, avatarSize: CGFloat, isExpanded: Bool, isSettings: Bool) {
+    func update(peer: Peer?, contactInfo: TelegramMediaContact?, threadId: Int64?, threadInfo: EngineMessageHistoryThread.Info?, item: PeerInfoAvatarListItem?, theme: PresentationTheme, avatarSize: CGFloat, isExpanded: Bool, isSettings: Bool) {
         if let peer = peer {
             let previousItem = self.item
             var item = item
@@ -200,8 +200,8 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
             }
             
             self.avatarNode.imageNode.animateFirstTransition = !isSettings
-            self.avatarNode.setPeer(context: self.context, theme: theme, peer: EnginePeer(peer), overrideImage: overrideImage, clipStyle: .none, synchronousLoad: self.isFirstAvatarLoading, displayDimensions: CGSize(width: avatarSize, height: avatarSize), storeUnrounded: true)
-            
+            self.avatarNode.setPeer(context: self.context, theme: theme, peer: EnginePeer(peer), overrideImage: overrideImage, emptyColor: .gray, clipStyle: .none, synchronousLoad: self.isFirstAvatarLoading, displayDimensions: CGSize(width: avatarSize, height: avatarSize), storeUnrounded: true)
+
             if let threadInfo = threadInfo {
                 self.avatarNode.isHidden = true
                 
@@ -428,8 +428,24 @@ final class PeerInfoAvatarTransformContainerNode: ASDisplayNode {
                     }
                 }
             }
+        } else {
+            containerNode.frame = CGRect(origin: CGPoint(x: -avatarSize / 2.0, y: -avatarSize / 2.0), size: CGSize(width: avatarSize, height: avatarSize))
+            avatarNode.frame = self.containerNode.bounds
+            avatarNode.font = avatarPlaceholderFont(size: floor(avatarSize * 16.0 / 37.0))
+
+            if let contactInfo {
+                var letters: [String] = []
+                if let firstLetter = contactInfo.firstName.first {
+                    letters.append(String(firstLetter))
+                }
+                if let lastLetter = contactInfo.lastName.first {
+                    letters.append(String(lastLetter))
+                }
+
+                avatarNode.setCustomLetters(letters)
+            }
         }
-        
+
         self.updateStoryView(transition: .immediate, theme: theme, peer: peer)
     }
 }
