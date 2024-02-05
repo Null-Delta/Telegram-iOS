@@ -77,13 +77,13 @@ private enum DeviceContactInfoSection: ItemListSectionId {
     case share
 }
 
-private enum DeviceContactInfoEntryTag: Equatable, ItemListItemTag {
+public enum DeviceContactInfoEntryTag: Equatable, ItemListItemTag {
     case info(Int)
     case birthday
     case editingPhone(Int64)
     case note
     
-    func isEqual(to other: ItemListItemTag) -> Bool {
+    public func isEqual(to other: ItemListItemTag) -> Bool {
         return self == (other as? DeviceContactInfoEntryTag)
     }
 }

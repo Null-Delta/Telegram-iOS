@@ -7,7 +7,8 @@ import UIKitRuntimeUtils
 final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGestureRecognizerDelegate {
     private var theme: NavigationControllerTheme
     let isFlat: Bool
-    
+    weak var dismissableDelegate: ModalDismissableDelegate?
+
     private let dim: ASDisplayNode
     private let scrollNode: ASScrollNode
     let container: NavigationContainer
@@ -45,7 +46,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
     init(theme: NavigationControllerTheme, isFlat: Bool, controllerRemoved: @escaping (ViewController) -> Void) {
         self.theme = theme
         self.isFlat = isFlat
-        
+
         self.dim = ASDisplayNode()
         self.dim.alpha = 0.0
         
@@ -332,7 +333,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
         
         transition.updateFrame(node: self.dim, frame: CGRect(origin: CGPoint(), size: layout.size))
         self.ignoreScrolling = true
-        self.scrollNode.view.isScrollEnabled = (layout.inputHeight == nil || layout.inputHeight == 0.0) && self.isInteractiveDimissEnabled && !self.isFlat
+        self.scrollNode.view.isScrollEnabled = dismissableDelegate?.isDismissable ?? (layout.inputHeight == nil || layout.inputHeight == 0.0) && self.isInteractiveDimissEnabled && !self.isFlat
         let previousBounds = self.scrollNode.bounds
         let scrollNodeFrame = CGRect(origin: CGPoint(x: self.horizontalDismissOffset ?? 0.0, y: 0.0), size: layout.size)
         self.scrollNode.frame = scrollNodeFrame
@@ -348,8 +349,8 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
         }
         self.ignoreScrolling = false
         
-        self.scrollNode.view.isScrollEnabled = !isStandaloneModal && !self.isFlat
-        
+        self.scrollNode.view.isScrollEnabled = dismissableDelegate?.isDismissable ?? !isStandaloneModal && !self.isFlat
+
         let isLandscape = layout.orientation == .landscape
         let containerLayout: ContainerViewLayout
         let containerFrame: CGRect
@@ -565,7 +566,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
                 enableScrolling = false
             }
         }
-        self.scrollNode.view.isScrollEnabled = enableScrolling && !self.isFlat
+        self.scrollNode.view.isScrollEnabled = dismissableDelegate?.isDismissable ?? enableScrolling && !self.isFlat
         return result
     }
 }

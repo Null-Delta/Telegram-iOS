@@ -1263,6 +1263,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 fromReactionMessageId = fromMessage?.id
             }
             self?.openPeer(peer: peer, navigation: navigation, fromMessage: fromMessage, fromReactionMessageId: fromReactionMessageId, expandAvatar: expandAvatar)
+        }, openContactPreview: { [weak self] contact, peer in
+            guard let strongSelf = self else { return }
+            let controller = strongSelf.context.sharedContext.makeContactInfoController(context: strongSelf.context, peer: peer, contactInfo: contact)
+            controller.navigationPresentation = .modal
+            
+
+            strongSelf.push(controller)
         }, openPeerMention: { [weak self] name, progress in
             self?.openPeerMention(name, progress: progress)
         }, openMessageContextMenu: { [weak self] message, selectAll, node, frame, anyRecognizer, location in

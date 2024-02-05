@@ -237,6 +237,10 @@ final class PeerInfoHeaderNavigationButton: HighlightableButtonNode {
                 text = presentationData.strings.Common_Cancel
                 accessibilityText = text
                 isBold = false
+            case .close:
+                text = presentationData.strings.Common_Close
+                accessibilityText = text
+                isBold = false
             case .done, .selectionDone:
                 text = presentationData.strings.Common_Done
                 accessibilityText = text

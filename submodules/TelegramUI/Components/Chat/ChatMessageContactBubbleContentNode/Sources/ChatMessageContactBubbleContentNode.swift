@@ -528,10 +528,11 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
                         selectedContact = media
                     }
                 }
+
                 if let peerId = selectedContact?.peerId, let peer = item.message.peers[peerId] {
-                    item.controllerInteraction.openPeer(EnginePeer(peer), .info(nil), nil, .default)
+                    item.controllerInteraction.openContactPreview(selectedContact, peer)
                 } else {
-                    let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
+                    item.controllerInteraction.openContactPreview(selectedContact, nil)
                 }
             }
         }
@@ -539,7 +540,18 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
     
     @objc private func addButtonPressed() {
         if let item = self.item {
-            let _ = item.controllerInteraction.openMessage(item.message, OpenMessageParams(mode: .default))
+            var selectedContact: TelegramMediaContact?
+            for media in item.message.media {
+                if let media = media as? TelegramMediaContact {
+                    selectedContact = media
+                }
+            }
+
+            if let peerId = selectedContact?.peerId, let peer = item.message.peers[peerId] {
+                item.controllerInteraction.openContactPreview(selectedContact, peer)
+            } else {
+                item.controllerInteraction.openContactPreview(selectedContact, nil)
+            }
         }
     }
     

@@ -23,7 +23,7 @@ final class PeerInfoAvatarListNode: ASDisplayNode {
     
     let isReady = Promise<Bool>()
    
-    var arguments: (Peer?, Int64?, EngineMessageHistoryThread.Info?, PresentationTheme, CGFloat, Bool)?
+    var arguments: (Peer?, TelegramMediaContact?, Int64?, EngineMessageHistoryThread.Info?, PresentationTheme, CGFloat, Bool)?
     var item: PeerInfoAvatarListItem?
     
     var itemsUpdated: (([PeerInfoAvatarListItem]) -> Void)?
@@ -93,14 +93,14 @@ final class PeerInfoAvatarListNode: ASDisplayNode {
             if let strongSelf = self {
                 strongSelf.item = items.first
                 strongSelf.itemsUpdated?(items)
-                if let (peer, threadId, threadInfo, theme, avatarSize, isExpanded) = strongSelf.arguments {
-                    strongSelf.avatarContainerNode.update(peer: peer, threadId: threadId, threadInfo: threadInfo, item: strongSelf.item, theme: theme, avatarSize: avatarSize, isExpanded: isExpanded, isSettings: strongSelf.isSettings)
+                if let (peer, contactInfo, threadId, threadInfo, theme, avatarSize, isExpanded) = strongSelf.arguments {
+                    strongSelf.avatarContainerNode.update(peer: peer, contactInfo: contactInfo, threadId: threadId, threadInfo: threadInfo, item: strongSelf.item, theme: theme, avatarSize: avatarSize, isExpanded: isExpanded, isSettings: strongSelf.isSettings)
                 }
             }
         }
 
         self.pinchSourceNode.activate = { [weak self] sourceNode in
-            guard let strongSelf = self, let (_, _, _, _, _, isExpanded) = strongSelf.arguments, isExpanded else {
+            guard let strongSelf = self, let (_, _, _, _, _, _, isExpanded) = strongSelf.arguments, isExpanded else {
                 return
             }
             let pinchController = PinchController(sourceNode: sourceNode, getContentAreaInScreenSpace: {
@@ -128,13 +128,13 @@ final class PeerInfoAvatarListNode: ASDisplayNode {
         }
     }
     
-    func update(size: CGSize, avatarSize: CGFloat, isExpanded: Bool, peer: Peer?, isForum: Bool, threadId: Int64?, threadInfo: EngineMessageHistoryThread.Info?, theme: PresentationTheme, transition: ContainedViewLayoutTransition) {
-        self.arguments = (peer, threadId, threadInfo, theme, avatarSize, isExpanded)
+    func update(size: CGSize, avatarSize: CGFloat, isExpanded: Bool, peer: Peer?, contactInfo: TelegramMediaContact?, isForum: Bool, threadId: Int64?, threadInfo: EngineMessageHistoryThread.Info?, theme: PresentationTheme, transition: ContainedViewLayoutTransition) {
+        self.arguments = (peer, contactInfo, threadId, threadInfo, theme, avatarSize, isExpanded)
         self.maskNode.isForum = isForum
         self.pinchSourceNode.update(size: size, transition: transition)
         self.containerNode.frame = CGRect(origin: CGPoint(), size: size)
         self.pinchSourceNode.frame = CGRect(origin: CGPoint(), size: size)
-        self.avatarContainerNode.update(peer: peer, threadId: threadId, threadInfo: threadInfo, item: self.item, theme: theme, avatarSize: avatarSize, isExpanded: isExpanded, isSettings: self.isSettings)
+        self.avatarContainerNode.update(peer: peer, contactInfo: contactInfo, threadId: threadId, threadInfo: threadInfo, item: self.item, theme: theme, avatarSize: avatarSize, isExpanded: isExpanded, isSettings: self.isSettings)
     }
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
