@@ -475,7 +475,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         } else if let customNavigationContentNode = self.customNavigationContentNode {
             transition.updateFrame(node: customNavigationContentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: navigationHeight)))
         }
-
+        
         var threadData = threadData
         if case let .replyThread(replyThreadMessage) = self.chatLocation, replyThreadMessage.peerId == self.context.account.peerId {
             threadData = nil
