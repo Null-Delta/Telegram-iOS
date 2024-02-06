@@ -161,6 +161,12 @@ public final class ContactInfoScreen: ViewController {
         super.viewDidLoad()
     }
 
+    override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        if let layout = self.validLayout {
+            self.layout(layout: layout, transition: .immediate, additive: false)
+        }
+    }
+
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         self.validLayout = layout
         self.layout(layout: layout, transition: transition, additive: false)
@@ -240,6 +246,7 @@ public final class ContactInfoScreen: ViewController {
             leftButtons: [.init(key: .close, isForExpandedView: false)],
             rightButtons: [],
             expandFraction: 0,
+            shouldAnimateIn: false,
             transition: transition
         )
 
@@ -339,7 +346,7 @@ public final class ContactInfoScreen: ViewController {
             )
         }
 
-        headerNode.navigationButtonContainer.update(size: CGSize(width: layout.size.width, height: navigationHeight), presentationData: self.presentationData, leftButtons: [.init(key: .close, isForExpandedView: false)], rightButtons: [], expandFraction: 0, transition: transition)
+        headerNode.navigationButtonContainer.update(size: CGSize(width: layout.size.width, height: navigationHeight), presentationData: self.presentationData, leftButtons: [.init(key: .close, isForExpandedView: false)], rightButtons: [], expandFraction: 0, shouldAnimateIn: false, transition: transition)
     }
 
     private func previewItems() -> [(AnyHashable, [PeerInfoScreenItem])] {
