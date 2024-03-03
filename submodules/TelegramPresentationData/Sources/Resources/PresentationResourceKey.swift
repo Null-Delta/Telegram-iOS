@@ -59,6 +59,7 @@ public enum PresentationResourceKey: Int32 {
     case itemListVerifiedPeerIcon
     case itemListCloudFetchIcon
     case itemListCloseIconImage
+    case itemListRemoveIconImage
     case itemListMakeVisibleIcon
     case itemListMakeInvisibleIcon
     case itemListEditThemeIcon
@@ -124,6 +125,7 @@ public enum PresentationResourceKey: Int32 {
     case chatTitleLockIcon
     case chatTitleMuteIcon
     case chatPanelLockIcon
+    case chatPanelBoostIcon
     
     case chatBubbleVerticalLineIncomingImage
     case chatBubbleVerticalLineOutgoingImage
@@ -277,6 +279,7 @@ public enum PresentationResourceKey: Int32 {
     case chatFreeCommentButtonIcon
     case chatFreeNavigateButtonIcon
     case chatFreeShareButtonIcon
+    case chatFreeCloseButtonIcon
     
     case chatKeyboardActionButtonMessageIcon
     case chatKeyboardActionButtonLinkIcon

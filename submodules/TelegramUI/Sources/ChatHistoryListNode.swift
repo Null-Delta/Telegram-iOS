@@ -695,6 +695,11 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
     
     var frozenMessageForScrollingReset: EngineMessage.Id?
     
+    private let _isReady = ValuePromise<Bool>(false, ignoreRepeated: true)
+    public var isReady: Signal<Bool, NoError> {
+        return self._isReady.get()
+    }
+    
     public init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>), chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, tag: HistoryViewInputTag?, source: ChatHistoryListSource, subject: ChatControllerSubject?, controllerInteraction: ChatControllerInteraction, selectedMessages: Signal<Set<MessageId>?, NoError>, mode: ChatHistoryListMode = .bubbles, rotated: Bool = false, messageTransitionNode: @escaping () -> ChatMessageTransitionNodeImpl?) {
         var tag = tag
         if case .pinnedMessages = subject {
@@ -1124,6 +1129,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
     
     private func beginChatHistoryTransitions(resetScrolling: Bool) {
         self.historyDisposable.set(nil)
+        self._isReady.set(false)
         
         let context = self.context
         let chatLocation = self.chatLocation
@@ -1138,6 +1144,13 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
         let rotated = self.rotated
         
         var resetScrollingMessageId: (index: MessageIndex, offset: CGFloat)?
+        
+        let useRootInterfaceStateForThread: Bool
+        if case let .replyThread(message) = self.chatLocation, message.peerId == self.context.account.peerId, message.threadId == self.context.account.peerId.toInt64() {
+            useRootInterfaceStateForThread = true
+        } else {
+            useRootInterfaceStateForThread = false
+        }
         
         var resetScrolling = resetScrolling
         if resetScrolling {
@@ -1258,7 +1271,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 return true
             })
             |> mapToSignal { location, ignoreMessagesInTimestampRange in
-                return chatHistoryViewForLocation(location, ignoreMessagesInTimestampRange: ignoreMessagesInTimestampRange, context: context, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, scheduled: isScheduledMessages, fixedCombinedReadStates: fixedCombinedReadStates.with { $0 }, tag: tag, appendMessagesFromTheSameGroup: appendMessagesFromTheSameGroup, additionalData: additionalData, orderStatistics: [])
+                return chatHistoryViewForLocation(location, ignoreMessagesInTimestampRange: ignoreMessagesInTimestampRange, context: context, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, scheduled: isScheduledMessages, fixedCombinedReadStates: fixedCombinedReadStates.with { $0 }, tag: tag, appendMessagesFromTheSameGroup: appendMessagesFromTheSameGroup, additionalData: additionalData, orderStatistics: [], useRootInterfaceStateForThread: useRootInterfaceStateForThread)
                 |> beforeNext { viewUpdate in
                     switch viewUpdate {
                         case let .HistoryView(view, _, _, _, _, _, _):
@@ -1458,6 +1471,8 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
         
         let deviceContactsNumbers = self.context.sharedContext.deviceContactPhoneNumbers.get()
         |> distinctUntilChanged
+        
+        let premiumConfiguration = PremiumConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
         
         let messageViewQueue = Queue.mainQueue()
         let historyViewTransitionDisposable = combineLatest(queue: messageViewQueue,
@@ -1663,21 +1678,28 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                     reverseGroups = reverseGroupsValue
                 }
                 
-                var isCopyProtectionEnabled: Bool = data.initialData?.peer?.isCopyProtectionEnabled ?? false
-                for entry in view.additionalData {
-                    if case let .peer(_, maybePeer) = entry, let peer = maybePeer {
-                        isCopyProtectionEnabled = peer.isCopyProtectionEnabled
-                    }
-                }
                 
                 var isPremium = false
                 if case let .user(user) = accountPeer, user.isPremium {
                     isPremium = true
                 }
                 
+                var audioTranscriptionProvidedByBoost = false
+                var isCopyProtectionEnabled: Bool = data.initialData?.peer?.isCopyProtectionEnabled ?? false
+                for entry in view.additionalData {
+                    if case let .peer(_, maybePeer) = entry, let peer = maybePeer {
+                        isCopyProtectionEnabled = peer.isCopyProtectionEnabled
+                        if let channel = peer as? TelegramChannel, let boostLevel = channel.approximateBoostLevel {
+                            if boostLevel >= premiumConfiguration.minGroupAudioTranscriptionLevel {
+                                audioTranscriptionProvidedByBoost = true
+                            }
+                        }
+                    }
+                }
                 let alwaysDisplayTranscribeButton = ChatMessageItemAssociatedData.DisplayTranscribeButton(
                     canBeDisplayed: suggestAudioTranscription.0 < 2,
-                    displayForNotConsumed: suggestAudioTranscription.1
+                    displayForNotConsumed: suggestAudioTranscription.1,
+                    providedByGroupBoost: audioTranscriptionProvidedByBoost
                 )
                 
                 var translateToLanguage: String?
@@ -1703,6 +1725,7 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 }
                 
                 let filteredEntries = chatHistoryEntriesForView(
+                    context: context,
                     location: chatLocation,
                     view: view,
                     includeUnreadEntry: mode == .bubbles,
@@ -3619,6 +3642,8 @@ public final class ChatHistoryListNodeImpl: ListView, ChatHistoryNode, ChatHisto
                 }
                 
                 strongSelf.dequeueHistoryViewTransitions()
+                
+                strongSelf._isReady.set(true)
             }
         }
         
