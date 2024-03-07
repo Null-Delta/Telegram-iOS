@@ -1293,7 +1293,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let _ = panelSubtitleNodeLayout[TitleNodeStateRegular]!.size
         let usernameSize = usernameNodeLayout[TitleNodeStateRegular]!.size
         
-        if let statusData, statusData.isHiddenStatus, !self.isPremiumDisabled {
+        if let statusData, statusData.isHiddenStatus, !self.isPremiumDisabled, !isPreview {
             let subtitleBadgeView: PeerInfoSubtitleBadgeView
             if let current = self.subtitleBadgeView {
                 subtitleBadgeView = current

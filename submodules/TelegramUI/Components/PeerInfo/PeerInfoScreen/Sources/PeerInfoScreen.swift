@@ -11730,7 +11730,7 @@ private final class PeerInfoNavigationTransitionNode: ASDisplayNode, CustomNavig
             transition.updateAlpha(node: self.headerNode.subtitleNode, alpha: (1.0 - fraction))
             transition.updateAlpha(node: previousStatusNode, alpha: fraction)
             
-            transition.updateAlpha(node: self.headerNode.navigationButtonContainer, alpha: (1.0 - fraction))
+            transition.updateAlpha(node: self.headerNode.navigationButtonContainer, alpha: (1.0 - fraction), beginWithCurrentState: transition.isAnimated)
 
             if case .animated = transition, (bottomNavigationBar.additionalContentNode.alpha.isZero || bottomNavigationBar.additionalContentNode.alpha == 1.0) {
                 bottomNavigationBar.additionalContentNode.alpha = fraction

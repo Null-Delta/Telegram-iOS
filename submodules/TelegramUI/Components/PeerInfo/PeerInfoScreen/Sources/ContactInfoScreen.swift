@@ -64,10 +64,15 @@ public final class ContactInfoScreen: ViewController {
 
         super.init(navigationBarPresentationData: nil)
 
+        var isLandscape = false
+        if UIScreen.main.bounds.width > UIScreen.main.bounds.height {
+            isLandscape = true
+        }
+
         self.headerNode = PeerInfoHeaderNode(
             context: context,
             controller: self,
-            avatarInitiallyExpanded: peer == nil ? false : ((peer?.backgroundEmojiId != nil) ? false : (peer?.smallProfileImage == nil ? false : true)),
+            avatarInitiallyExpanded: (peer == nil || isLandscape) ? false : ((peer?.backgroundEmojiId != nil) ? false : (peer?.smallProfileImage == nil ? false : true)),
             isOpenedFromChat: false,
             isMediaOnly: false,
             isSettings: false,
@@ -78,8 +83,6 @@ public final class ContactInfoScreen: ViewController {
 
         self.view.addSubview(scrollView)
         self.view.addSubview(headerNode.view)
-
-        self.view.tag = 228
 
         if #available(iOS 13, *) {
             self.isModalInPresentation = true
@@ -108,6 +111,10 @@ public final class ContactInfoScreen: ViewController {
         }
 
         self.headerNode.requestAvatarExpansion = { [weak self] _, _, _, _ in
+            guard UIScreen.main.bounds.width <= UIScreen.main.bounds.height else {
+                return
+            }
+
             self?.headerNode.updateIsAvatarExpanded(true, transition: .animated(duration: 0.3, curve: .spring))
 
             if let layout = self?.validLayout {
@@ -163,6 +170,9 @@ public final class ContactInfoScreen: ViewController {
 
     override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         if let layout = self.validLayout {
+            if UIScreen.main.bounds.width > UIScreen.main.bounds.height {
+                self.headerNode.updateIsAvatarExpanded(false, transition: .immediate)
+            }
             self.layout(layout: layout, transition: .immediate, additive: false)
         }
     }
@@ -209,7 +219,7 @@ public final class ContactInfoScreen: ViewController {
             peerNotificationSettings: nil,
             threadNotificationSettings: nil,
             globalNotificationSettings: nil,
-            statusData: (peer == nil ? PeerInfoStatusData(text: "not in Telegram", isActivity: false, isHiddenStatus: false, key: nil) : data?.status),
+            statusData: (peer == nil ? PeerInfoStatusData(text: "not on Telegram", isActivity: false, isHiddenStatus: false, key: nil) : data?.status),
             panelStatusData: (nil, nil, nil),
             isSecretChat: false,
             isContact: false,
@@ -232,7 +242,7 @@ public final class ContactInfoScreen: ViewController {
         transition.updateFrame(
             node: headerNode.navigationButtonContainer,
             frame: CGRect(
-                origin: CGPoint(x: 0, y: 0.0),
+                origin: CGPoint(x: layout.safeInsets.left, y: 0.0),
                 size: CGSize(
                     width: view.bounds.width,
                     height: navigationBarHeight
@@ -241,7 +251,7 @@ public final class ContactInfoScreen: ViewController {
         )
 
         headerNode.navigationButtonContainer.update(
-            size: CGSize(width: layout.size.width, height: navigationBarHeight),
+            size: CGSize(width: layout.size.width - layout.safeInsets.left * 2.0, height: navigationBarHeight),
             presentationData: self.presentationData,
             leftButtons: [.init(key: .close, isForExpandedView: false)],
             rightButtons: [],
@@ -267,7 +277,7 @@ public final class ContactInfoScreen: ViewController {
                 scrollView.addSubview(sectionNode.view)
             }
 
-            let sectionWidth = layout.size.width - 24
+            let sectionWidth = layout.size.width - layout.safeInsets.left - layout.safeInsets.right - 24
             let sectionHeight = sectionNode.update(
                 width: sectionWidth,
                 safeInsets: .zero,
@@ -276,9 +286,10 @@ public final class ContactInfoScreen: ViewController {
                 items: sectionItems,
                 transition: transition
             )
+            sectionNode.backgroundColor = presentationData.theme.list.blocksBackgroundColor
 
             let sectionFrame = CGRect(
-                origin: CGPoint(x: 12, y: contentHeight),
+                origin: CGPoint(x: 12 + layout.safeInsets.left, y: contentHeight),
                 size: CGSize(width: sectionWidth, height: sectionHeight)
             )
             transition.updateFrame(node: sectionNode, frame: sectionFrame)
@@ -301,7 +312,7 @@ public final class ContactInfoScreen: ViewController {
     fileprivate func updateNavigation(transition: ContainedViewLayoutTransition, additive: Bool, animateHeader: Bool) {
         guard let layout = validLayout else { return }
 
-        let offsetY = scrollView.contentOffset.y
+        let offsetY = min(0, scrollView.contentOffset.y)
         let navigationHeight = 56.0
 
         if !additive {
@@ -331,7 +342,7 @@ public final class ContactInfoScreen: ViewController {
                 peerNotificationSettings: nil,
                 threadNotificationSettings: nil,
                 globalNotificationSettings: nil,
-                statusData: (peer == nil ? PeerInfoStatusData(text: "not in Telegram", isActivity: false, isHiddenStatus: false, key: nil) : data?.status),
+                statusData: (peer == nil ? PeerInfoStatusData(text: "not on Telegram", isActivity: false, isHiddenStatus: false, key: nil) : data?.status),
                 panelStatusData: (nil, nil, nil),
                 isSecretChat: false,
                 isContact: false,
@@ -346,7 +357,7 @@ public final class ContactInfoScreen: ViewController {
             )
         }
 
-        headerNode.navigationButtonContainer.update(size: CGSize(width: layout.size.width, height: navigationHeight), presentationData: self.presentationData, leftButtons: [.init(key: .close, isForExpandedView: false)], rightButtons: [], expandFraction: 0, shouldAnimateIn: false, transition: transition)
+        headerNode.navigationButtonContainer.update(size: CGSize(width: layout.size.width - layout.safeInsets.left * 2.0, height: navigationHeight), presentationData: self.presentationData, leftButtons: [.init(key: .close, isForExpandedView: false)], rightButtons: [], expandFraction: 0, shouldAnimateIn: false, transition: transition)
     }
 
     private func previewItems() -> [(AnyHashable, [PeerInfoScreenItem])] {
