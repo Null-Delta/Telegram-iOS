@@ -233,6 +233,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     public let openPremiumStatusInfo: (EnginePeer.Id, UIView, Int64?, PeerNameColor) -> Void
     public let openRecommendedChannelContextMenu: (EnginePeer, UIView, ContextGesture?) -> Void
     public let openGroupBoostInfo: (EnginePeer.Id?, Int) -> Void
+    public let openStickerEditor: () -> Void
     
     public let requestMessageUpdate: (MessageId, Bool) -> Void
     public let cancelInteractiveKeyboardGestures: () -> Void
@@ -357,6 +358,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
         openPremiumStatusInfo: @escaping (EnginePeer.Id, UIView, Int64?, PeerNameColor) -> Void,
         openRecommendedChannelContextMenu: @escaping (EnginePeer, UIView, ContextGesture?) -> Void,
         openGroupBoostInfo: @escaping (EnginePeer.Id?, Int) -> Void,
+        openStickerEditor: @escaping () -> Void,
         requestMessageUpdate: @escaping (MessageId, Bool) -> Void,
         cancelInteractiveKeyboardGestures: @escaping () -> Void,
         dismissTextInput: @escaping () -> Void,
@@ -461,6 +463,7 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
         self.openPremiumStatusInfo = openPremiumStatusInfo
         self.openRecommendedChannelContextMenu = openRecommendedChannelContextMenu
         self.openGroupBoostInfo = openGroupBoostInfo
+        self.openStickerEditor = openStickerEditor
         
         self.requestMessageUpdate = requestMessageUpdate
         self.cancelInteractiveKeyboardGestures = cancelInteractiveKeyboardGestures
