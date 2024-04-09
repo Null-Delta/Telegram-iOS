@@ -15,15 +15,21 @@ final class ShareControllerRecentPeersGridItem: GridItem {
     let strings: PresentationStrings
     let controllerInteraction: ShareControllerInteraction
     
-    let section: GridSection? = nil
+    let section: GridSection?
     let fillsRowWithHeight: (CGFloat, Bool)? = (102.0, true)
     
-    init(environment: ShareControllerEnvironment, context: ShareControllerAccountContext, theme: PresentationTheme, strings: PresentationStrings, controllerInteraction: ShareControllerInteraction) {
+    init(environment: ShareControllerEnvironment, context: ShareControllerAccountContext, theme: PresentationTheme, strings: PresentationStrings, controllerInteraction: ShareControllerInteraction, sectionTitle: String? = nil) {
         self.environment = environment
         self.context = context
         self.theme = theme
         self.strings = strings
         self.controllerInteraction = controllerInteraction
+
+        if let sectionTitle = sectionTitle {
+            self.section = ShareControllerGridSection(title: sectionTitle, theme: self.theme)
+        } else {
+            self.section = nil
+        }
     }
     
     func node(layout: GridNodeLayout, synchronousLoad: Bool) -> GridItemNode {

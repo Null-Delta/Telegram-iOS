@@ -46,33 +46,7 @@ final class PrivateCallPictureInPictureView: UIView {
             return AVSampleBufferDisplayLayer.self
         }
     }
-    
-    private final class AnimationTrackingLayer: SimpleLayer {
-        var onAnimation: ((CAAnimation) -> Void)?
-        
-        override func add(_ anim: CAAnimation, forKey key: String?) {
-            super.add(anim, forKey: key)
-            
-            if key == "bounds" {
-                self.onAnimation?(anim)
-            }
-        }
-    }
-    
-    private final class AnimationTrackingView: UIView {
-        override static var layerClass: AnyClass {
-            return AnimationTrackingLayer.self
-        }
-        
-        var onAnimation: ((CAAnimation) -> Void)? {
-            didSet {
-                (self.layer as? AnimationTrackingLayer)?.onAnimation = self.onAnimation
-            }
-        }
-    }
-    
-    private let animationTrackingView: AnimationTrackingView
-    
+
     private let videoContainerView: UIView
     private let sampleBufferView: SampleBufferView
     
@@ -109,15 +83,12 @@ final class PrivateCallPictureInPictureView: UIView {
     }
     
     override init(frame: CGRect) {
-        self.animationTrackingView = AnimationTrackingView()
-        
+
         self.videoContainerView = UIView()
         self.sampleBufferView = SampleBufferView()
         
         super.init(frame: frame)
-        
-        self.addSubview(self.animationTrackingView)
-        
+
         self.backgroundColor = .black
         
         self.videoContainerView.addSubview(self.sampleBufferView)
@@ -153,16 +124,7 @@ final class PrivateCallPictureInPictureView: UIView {
         if size.width.isZero || size.height.isZero {
             return
         }
-        
-        var animationTemplate: CAAnimation?
-        self.animationTrackingView.onAnimation = { animation in
-            animationTemplate = animation
-        }
-        self.animationTrackingView.frame = CGRect(origin: CGPoint(), size: size)
-        self.animationTrackingView.onAnimation = nil
-        
-        let _ = animationTemplate
-        
+
         let animationDuration = CATransaction.animationDuration()
         let timingFunction = CATransaction.animationTimingFunction()
         
@@ -213,36 +175,33 @@ final class PrivateCallPictureInPictureView: UIView {
             
             let videoFrame = rotatedVideoSize.centered(around: CGPoint(x: rotatedBoundingSize.width * 0.5, y: rotatedBoundingSize.height * 0.5))
             
-            let apply: () -> Void = {
-                self.videoContainerView.center = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-                self.videoContainerView.bounds = CGRect(origin: CGPoint(), size: rotatedBoundingSize)
+            let apply: (Transition) -> Void = { transition in
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
                 self.videoContainerView.transform = CGAffineTransformMakeRotation(CGFloat(resolvedRotationAngle))
-                
-                self.sampleBufferView.center = videoFrame.center
-                self.sampleBufferView.bounds = CGRect(origin: CGPoint(), size: videoFrame.size)
-                
+                CATransaction.commit()
+
+                transition.setBounds(view: self.videoContainerView, bounds: CGRect(origin: CGPoint(), size: rotatedBoundingSize))
+                transition.setPosition(view: self.videoContainerView, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
+
+                transition.setBounds(view: self.sampleBufferView, bounds: CGRect(origin: CGPoint(), size: videoFrame.size))
+                transition.setPosition(view: self.sampleBufferView, position: videoFrame.center)
+
                 if let sublayers = self.sampleBufferView.layer.sublayers {
                     if sublayers.count > 1, !sublayers[0].bounds.isEmpty {
-                        sublayers[0].position = CGPoint(x: videoFrame.width * 0.5, y: videoFrame.height * 0.5)
-                        sublayers[0].bounds = CGRect(origin: CGPoint(), size: videoFrame.size)
+                        transition.setBounds(layer: sublayers[0], bounds: CGRect(origin: CGPoint(), size: videoFrame.size))
+                        transition.setPosition(layer: sublayers[0], position: CGPoint(x: videoFrame.width * 0.5, y: videoFrame.height * 0.5))
                     }
                 }
             }
             
             if !mappedTransition.animation.isImmediate {
-                apply()
+                apply(mappedTransition)
             } else {
                 UIView.performWithoutAnimation {
-                    apply()
+                    apply(mappedTransition)
                 }
             }
         }
-    }
-}
-
-@available(iOS 15.0, *)
-final class PrivateCallPictureInPictureController: AVPictureInPictureVideoCallViewController {
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
     }
 }

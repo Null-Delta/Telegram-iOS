@@ -1374,6 +1374,7 @@ public func deviceContactInfoController(context: AccountContext, updatedPresenta
                 return nil
             }
         }))
+        controller?.view.endEditing(true)
     }
     
     return controller

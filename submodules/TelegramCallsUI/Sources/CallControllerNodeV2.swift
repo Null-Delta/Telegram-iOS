@@ -1,4 +1,5 @@
 import Foundation
+import AVFAudio
 import AsyncDisplayKit
 import Display
 import TelegramCore
@@ -80,7 +81,17 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
     private var notifyDismissedInteractivelyOnPanGestureApply: Bool = false
     
     private var signalQualityTimer: Foundation.Timer?
-    
+
+    private let url = Bundle.main.url(forResource: "begin_record", withExtension: "mp3")
+
+
+    private lazy var player: AVAudioPlayer? = {
+        guard let url else { return nil }
+        guard let player = try? AVAudioPlayer(contentsOf: url) else { return nil }
+        return player
+    }()
+
+
     init(
         sharedContext: SharedAccountContext,
         account: Account,
@@ -90,6 +101,8 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
         easyDebugAccess: Bool,
         call: PresentationCall
     ) {
+
+        UIDevice.current.isProximityMonitoringEnabled = true
         self.sharedContext = sharedContext
         self.account = account
         self.presentationData = presentationData
@@ -220,6 +233,8 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
         self.audioLevelDisposable?.dispose()
         self.audioOutputCheckTimer?.invalidate()
         self.signalQualityTimer?.invalidate()
+
+//        UIDevice.current.isProximityMonitoringEnabled = false
     }
     
     func updateAudioOutputs(availableOutputs: [AudioSessionOutput], currentOutput: AudioSessionOutput?) {
@@ -364,6 +379,12 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
     }
     
     func updateCallState(_ callState: PresentationCallState) {
+        if callState.remoteVideoState == .active && self.callState?.remoteVideoState != .active && UIDevice.current.proximityState {
+            player?.prepareToPlay()
+            player?.volume = 1.0
+            player?.play()
+        }
+
         self.callState = callState
         
         let mappedLifecycleState: PrivateCallScreen.State.LifecycleState

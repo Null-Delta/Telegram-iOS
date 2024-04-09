@@ -3443,7 +3443,10 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             }
             switch key {
             case .back:
-                strongSelf.controller?.dismiss()
+                strongSelf.isDismissingByBackButtonTap = true
+                strongSelf.controller?.dismiss() {
+                    strongSelf.isDismissingByBackButtonTap = false
+                }
             case .close:
                 strongSelf.controller?.dismiss()
             case .edit:
@@ -10500,9 +10503,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     private var canAddVelocity: Bool = false
     
     private var canOpenAvatarByDragging = false
-    
+
+    private var isDismissingByBackButtonTap = false
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard !self.ignoreScrolling else {
+        guard !self.ignoreScrolling, !self.isDismissingByBackButtonTap else {
             return
         }
                         

@@ -506,6 +506,11 @@ private final class PictureInPictureContentImpl: NSObject, PictureInPictureConte
                     return
                 }
                 strongSelf.status = status
+
+                if let status, status.timestamp == status.duration && status.status == .paused {
+                    strongSelf.node.seek(0.0)
+                }
+
                 if let status {
                     let isPlaying = status.status == .playing
                     if !invalidatedStateOnce {
@@ -531,7 +536,7 @@ private final class PictureInPictureContentImpl: NSObject, PictureInPictureConte
             guard let status = self.status else {
                 return CMTimeRange(start: CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(30.0)), duration: CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(30.0)))
             }
-            return CMTimeRange(start: CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(30.0)), duration: CMTime(seconds: status.duration - status.timestamp, preferredTimescale: CMTimeScale(30.0)))
+            return CMTimeRange(start: CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(30.0)), duration: CMTime(seconds: status.duration, preferredTimescale: CMTimeScale(30.0)))
         }
 
         public func pictureInPictureControllerIsPlaybackPaused(_ pictureInPictureController: AVPictureInPictureController) -> Bool {

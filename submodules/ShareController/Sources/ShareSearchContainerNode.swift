@@ -87,7 +87,7 @@ private enum ShareSearchRecentEntry: Comparable, Identifiable {
     func item(environment: ShareControllerEnvironment, context: ShareControllerAccountContext, interfaceInteraction: ShareControllerInteraction) -> GridItem {
         switch self {
         case let .topPeers(theme, strings):
-            return ShareControllerRecentPeersGridItem(environment: environment, context: context, theme: theme, strings: strings, controllerInteraction: interfaceInteraction)
+            return ShareControllerRecentPeersGridItem(environment: environment, context: context, theme: theme, strings: strings, controllerInteraction: interfaceInteraction, sectionTitle: strings.Contacts_Title)
         case let .peer(_, theme, peer, associatedPeer, presence, requiresPremiumForMessaging, strings):
             var peers: [EnginePeer.Id: EnginePeer] = [peer.id: peer]
             if let associatedPeer = associatedPeer {

@@ -1183,6 +1183,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
             self.displayedCameraConfirmation = true
         }
+
+        self.displayedCameraTooltip = false
+        self.incomingVideoViewRequested = true
+        self.self.outgoingVideoViewRequested = false
         if self.incomingVideoViewRequested && !self.outgoingVideoViewRequested && !self.displayedCameraTooltip && (self.toastContent?.isEmpty ?? true) {
             self.displayedCameraTooltip = true
             Queue.mainQueue().after(2.0) {

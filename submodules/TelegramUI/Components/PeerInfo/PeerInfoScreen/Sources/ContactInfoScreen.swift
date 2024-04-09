@@ -81,6 +81,8 @@ public final class ContactInfoScreen: ViewController {
             chatLocation: .peer(id: PeerId(0))
         )
 
+        self.headerNode.avatarListNode.listContainerNode.stripTopOffset = 4.0
+
         self.view.addSubview(scrollView)
         self.view.addSubview(headerNode.view)
 
@@ -450,49 +452,85 @@ public final class ContactInfoScreen: ViewController {
         }
 
         itemIndex += 1
-        items[.actions]!.append(
-            PeerInfoScreenActionItem(id: itemIndex, text: presentationData.strings.UserInfo_CreateNewContact, action: { [weak self] in
-                guard let self else { return }
 
-                var contactData: DeviceContactExtendedData?
-                if let contactInfo, let vCard = contactInfo.vCardData?.data(using: .utf8) {
-                    contactData = DeviceContactExtendedData(vcard: vCard)
-                } else if let peer = peer as? TelegramUser {
-                    contactData = DeviceContactExtendedData(
-                        basicData: DeviceContactBasicData(firstName: peer.firstName ?? "", lastName: peer.lastName ?? "", phoneNumbers: [
-                            .init(label: "", value: peer.phone ?? "")
-                        ]),
-                        middleName: "",
-                        prefix: "",
-                        suffix: "",
-                        organization: "",
-                        jobTitle: "",
-                        department: "",
-                        emailAddresses: [],
-                        urls: [],
-                        addresses: [],
-                        birthdayDate: nil,
-                        socialProfiles: [],
-                        instantMessagingProfiles: [],
-                        note: ""
+        if !(data?.isContact ?? false) {
+            items[.actions]!.append(
+                PeerInfoScreenActionItem(id: itemIndex, text: presentationData.strings.UserInfo_CreateNewContact, action: { [weak self] in
+                    guard let self else { return }
+
+                    var contactData: DeviceContactExtendedData?
+                    if let contactInfo, let vCard = contactInfo.vCardData?.data(using: .utf8) {
+                        contactData = DeviceContactExtendedData(vcard: vCard)
+                    } else if let peer = peer as? TelegramUser {
+                        contactData = DeviceContactExtendedData(
+                            basicData: DeviceContactBasicData(firstName: peer.firstName ?? "", lastName: peer.lastName ?? "", phoneNumbers: [
+                                .init(label: "", value: peer.phone ?? "")
+                            ]),
+                            middleName: "",
+                            prefix: "",
+                            suffix: "",
+                            organization: "",
+                            jobTitle: "",
+                            department: "",
+                            emailAddresses: [],
+                            urls: [],
+                            addresses: [],
+                            birthdayDate: nil,
+                            socialProfiles: [],
+                            instantMessagingProfiles: [],
+                            note: ""
+                        )
+                    } else if let contactInfo {
+                        contactData = DeviceContactExtendedData(
+                            basicData: DeviceContactBasicData(firstName: contactInfo.firstName, lastName: contactInfo.lastName, phoneNumbers: [
+                                .init(label: "", value: contactInfo.phoneNumber)
+                            ]),
+                            middleName: "",
+                            prefix: "",
+                            suffix: "",
+                            organization: "",
+                            jobTitle: "",
+                            department: "",
+                            emailAddresses: [],
+                            urls: [],
+                            addresses: [],
+                            birthdayDate: nil,
+                            socialProfiles: [],
+                            instantMessagingProfiles: [],
+                            note: ""
+                        )
+                    }
+
+                    guard let contactData else { return }
+
+
+                    self.present(
+                        context.sharedContext.makeDeviceContactInfoController(
+                            context: context,
+                            subject: .create(peer: peer, contactData: contactData, isSharing: peer != nil, shareViaException: false, completion: { _, _, _ in }),
+                            completed: { [weak self] in
+                                guard let strongSelf = self else { return }
+                                strongSelf.present(
+                                    UndoOverlayController(
+                                        presentationData: strongSelf.presentationData,
+                                        content: .actionSucceeded(title: nil, text: "\(contactData.basicData.firstName) is now in your contacts", cancel: nil, destructive: false),
+                                        elevatedLayout: false,
+                                        animateInAsReplacement: false,
+                                        action: { _ in return false }
+                                    ),
+                                    in: .window(.root)
+                                )
+                                strongSelf.dismiss()
+                            },
+                            cancelled: nil
+                        ),
+                        in: .window(.root),
+                        with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet)
                     )
-                }
-                guard let contactData else { return }
-
-
-                self.present(
-                    context.sharedContext.makeDeviceContactInfoController(
-                        context: context,
-                        subject: .create(peer: peer, contactData: contactData, isSharing: peer != nil, shareViaException: false, completion: { _, _, _ in }),
-                        completed: nil,
-                        cancelled: nil
-                    ), 
-                    in: .window(.root),
-                    with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet)
-                )
-            })
-        )
-        itemIndex += 1
+                })
+            )
+            itemIndex += 1
+        }
 
         items[.actions]!.append(
             PeerInfoScreenActionItem(id: itemIndex, text: presentationData.strings.UserInfo_AddToExisting, action: { [weak self] in
@@ -861,7 +899,7 @@ public final class ContactInfoScreen: ViewController {
                 }
                 UIPasteboard.general.string = formatPhoneNumber(context: strongSelf.context, number: value)
 
-                strongSelf.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: presentationData.strings.Conversation_PhoneCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                strongSelf.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: presentationData.strings.Conversation_PhoneCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
             }
 
             var accountIsFromUS = false

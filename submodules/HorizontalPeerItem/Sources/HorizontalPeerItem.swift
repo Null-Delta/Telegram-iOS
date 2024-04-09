@@ -168,7 +168,7 @@ public final class HorizontalPeerItemNode: ListViewItemNode {
         let currentItem = self.item
 
         return { [weak self] item, params in
-            let itemLayout = ListViewItemNodeLayout(contentSize: CGSize(width: 92.0, height: item.customWidth ?? 80.0), insets: UIEdgeInsets())
+            let itemLayout = ListViewItemNodeLayout(contentSize: CGSize(width: 80.0, height: item.customWidth ?? 80.0), insets: UIEdgeInsets())
             
             let itemTheme: SelectablePeerNodeTheme
             switch item.mode {
