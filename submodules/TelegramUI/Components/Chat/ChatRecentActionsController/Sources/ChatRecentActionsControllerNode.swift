@@ -569,6 +569,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, openRequestedPeerSelection: { _, _, _, _ in
         }, saveMediaToFiles: { _ in
         }, openNoAdsDemo: {  
+        }, openAdsInfo: {
         }, displayGiveawayParticipationStatus: { _ in
         }, openPremiumStatusInfo: { _, _, _, _ in
         }, openRecommendedChannelContextMenu: { _, _, _ in
@@ -1096,6 +1097,8 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                     case .premiumGiftCode:
                         break
                     case .premiumMultiGift:
+                        break
+                    case .messageLink:
                         break
                 }
             }

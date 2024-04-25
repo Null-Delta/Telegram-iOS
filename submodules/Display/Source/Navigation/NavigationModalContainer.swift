@@ -4,7 +4,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import UIKitRuntimeUtils
 
-final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGestureRecognizerDelegate {
+final class NavigationModalContainer: ASDisplayNode, ASScrollViewDelegate, ASGestureRecognizerDelegate {
     private var theme: NavigationControllerTheme
     let isFlat: Bool
     weak var dismissableDelegate: ModalDismissableDelegate?
@@ -90,7 +90,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
         }
         self.scrollNode.view.delaysContentTouches = false
         self.scrollNode.view.clipsToBounds = false
-        self.scrollNode.view.delegate = self
+        self.scrollNode.view.delegate = self.wrappedScrollViewDelegate
         
         let panRecognizer = InteractiveTransitionGestureRecognizer(target: self, action: #selector(self.panGesture(_:)), allowedDirections: { [weak self] _ in
             guard let strongSelf = self, !strongSelf.isDismissed else {
@@ -110,7 +110,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
                 panRecognizer.isEnabled = false
             }
         }
-        panRecognizer.delegate = self
+        panRecognizer.delegate = self.wrappedGestureRecognizerDelegate
         panRecognizer.delaysTouchesBegan = false
         panRecognizer.cancelsTouchesInView = true
         if !self.isFlat {
@@ -313,7 +313,7 @@ final class NavigationModalContainer: ASDisplayNode, UIScrollViewDelegate, UIGes
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
     }
     
-    func scrollViewShouldScrollToTop(_ scrollView: UIScrollView) -> Bool {
+    func scrollViewShouldScroll(toTop scrollView: UIScrollView) -> Bool {
         return false
     }
     
