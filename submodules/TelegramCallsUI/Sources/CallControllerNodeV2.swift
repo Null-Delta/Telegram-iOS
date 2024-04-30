@@ -19,6 +19,7 @@ import TelegramVoip
 import MetalEngine
 import DeviceAccess
 import LibYuvBinding
+import TooltipUI
 
 final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeProtocol {
     private struct PanGestureState {
@@ -91,6 +92,10 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
         return player
     }()
 
+    private var isTooltipScreenShown = false
+    private var canButtonsHide = true
+
+    private var tooltipScreen: TooltipScreen?
 
     init(
         sharedContext: SharedAccountContext,
@@ -233,8 +238,8 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
         self.audioLevelDisposable?.dispose()
         self.audioOutputCheckTimer?.invalidate()
         self.signalQualityTimer?.invalidate()
-
-//        UIDevice.current.isProximityMonitoringEnabled = false
+        self.tooltipScreen?.dismiss()
+        self.tooltipScreen = nil
     }
     
     func updateAudioOutputs(availableOutputs: [AudioSessionOutput], currentOutput: AudioSessionOutput?) {
@@ -281,7 +286,43 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
             }
         }
     }
-    
+
+    private func displayCameraTooltip() {
+        guard
+            let location = self.callScreen.cameraButtonFrame().map({ frame -> CGRect in
+                return self.view.convert(frame, to: self.view)
+            }),
+            !isTooltipScreenShown
+        else {
+            return
+        }
+
+        callScreen.canButtonsAutoHide = false
+        isTooltipScreenShown = true
+
+        let tooltipScreen = TooltipScreen(
+            account: self.account,
+            sharedContext: self.sharedContext,
+            text: .plain(text: self.presentationData.strings.Call_CameraOrScreenTooltip),
+            style: .default,
+            icon: nil,
+            location: .point(location, .bottom),
+            displayDuration: .manual,
+            shouldDismissOnTouch: { _, _ in
+                return .dismiss(consume: false)
+            }
+        )
+
+        tooltipScreen.onDismiss = { [weak self] in
+            self?.callScreen.canButtonsAutoHide = true
+            self?.tooltipScreen = nil
+        }
+
+        self.present?(tooltipScreen)
+
+        self.tooltipScreen = tooltipScreen
+    }
+
     private func toggleVideo() {
         guard let callState = self.callState else {
             return
@@ -386,7 +427,11 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
         }
 
         self.callState = callState
-        
+
+        if callState.remoteVideoState == .active && callState.videoState == .inactive {
+            self.displayCameraTooltip()
+        }
+
         let mappedLifecycleState: PrivateCallScreen.State.LifecycleState
         switch callState.state {
         case .waiting:

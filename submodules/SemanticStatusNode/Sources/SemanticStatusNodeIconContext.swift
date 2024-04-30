@@ -66,7 +66,7 @@ final class SemanticStatusNodeIconContext: SemanticStatusNodeStateContext {
                 }
                 if let iconImage = self.iconImage {
                     context.saveGState()
-                    let iconRect = CGRect(origin: CGPoint(), size: iconImage.size)//.applying(CGAffineTransformMakeScale(transitionScale, transitionScale))
+                    let iconRect = CGRect(origin: CGPoint(), size: iconImage.size)
                     context.translateBy(x: size.width / 2.0, y: size.height / 2.0)
                     context.scaleBy(x: 1.0, y: -1.0)
                     context.translateBy(x: -size.width / 2.0, y: -size.height / 2.0)
@@ -203,7 +203,7 @@ private final class PlayPauseIconNode: ManagedAnimationNode {
             case .pause:
                 switch state {
                     case .play:
-                        if animated {
+                        if animated && !UIDevice.current.proximityState {
                             self.trackTo(item: ManagedAnimationItem(source: .local("anim_playpause"), frames: .range(startFrame: 41, endFrame: 83), duration: self.duration))
                         } else {
                             self.trackTo(item: ManagedAnimationItem(source: .local("anim_playpause"), frames: .range(startFrame: 0, endFrame: 0), duration: 0.01))

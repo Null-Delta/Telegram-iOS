@@ -86,13 +86,13 @@ final class ButtonGroupView: OverlayMaskContainerView {
         return result
     }
     
-    func update(size: CGSize, insets: UIEdgeInsets, minWidth: CGFloat, controlsHidden: Bool, displayClose: Bool, strings: PresentationStrings, buttons: [Button], notices: [Notice], transition: Transition) -> CGFloat {
+    func update(size: CGSize, insets: UIEdgeInsets, minWidth: CGFloat, controlsHidden: Bool, displayClose: Bool, strings: PresentationStrings, buttons: [Button], notices: [Notice], noticesOffset: CGFloat, transition: Transition) -> CGFloat {
         self.buttons = buttons
         
         let buttonSize: CGFloat = 56.0
         let buttonSpacing: CGFloat = 36.0
         
-        let buttonNoticeSpacing: CGFloat = 16.0
+        let buttonNoticeSpacing: CGFloat = 16.0 + noticesOffset
         let controlsHiddenNoticeSpacing: CGFloat = 0.0
         var nextNoticeY: CGFloat
         if controlsHidden {
@@ -311,5 +311,9 @@ final class ButtonGroupView: OverlayMaskContainerView {
         }
         
         return resultHeight
+    }
+
+    func buttonFrame(for key: Button.Content.Key) -> CGRect? {
+        return buttonViews[key]?.frame
     }
 }

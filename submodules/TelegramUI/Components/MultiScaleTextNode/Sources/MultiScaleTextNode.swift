@@ -29,12 +29,16 @@ public final class MultiScaleTextState {
     public struct Attributes {
         public var font: UIFont
         public var color: UIColor
+        public var alignment: NSTextAlignment
         public var shadowColor: UIColor?
+        public var maximumNumberOfLines: Int?
 
-        public init(font: UIFont, color: UIColor, shadowColor: UIColor? = nil) {
+        public init(font: UIFont, color: UIColor, alignment: NSTextAlignment = .left, shadowColor: UIColor? = nil, maximumNumberOfLines: Int? = nil) {
             self.font = font
             self.color = color
+            self.alignment = alignment
             self.shadowColor = shadowColor
+            self.maximumNumberOfLines = maximumNumberOfLines
         }
     }
     
@@ -49,9 +53,13 @@ public final class MultiScaleTextState {
 
 public struct MultiScaleTextLayout {
     public var size: CGSize
+    public var linesCount: Int
+    public var lastLineWidth: CGFloat
 
-    public init(size: CGSize) {
+    public init(size: CGSize, linesCount: Int, lastLineWidth: CGFloat) {
         self.size = size
+        self.linesCount = linesCount
+        self.lastLineWidth = lastLineWidth
     }
 }
 
@@ -103,12 +111,42 @@ public final class MultiScaleTextNode: ASDisplayNode {
                     node.tintTextNode.shadowColor = nil
                     node.noTintTextNode.shadowColor = nil
                 }
+
+                node.tintTextNode.textAlignment = state.attributes.alignment
+                node.noTintTextNode.textAlignment = state.attributes.alignment
+
+                node.tintTextNode.maximumNumberOfLines = state.attributes.maximumNumberOfLines ?? 1
+                node.noTintTextNode.maximumNumberOfLines = state.attributes.maximumNumberOfLines ?? 1
+
                 node.tintTextNode.isAccessibilityElement = true
                 node.tintTextNode.accessibilityLabel = text
                 node.noTintTextNode.isAccessibilityElement = false
                 let nodeSize = node.tintTextNode.updateLayout(state.constrainedSize)
                 let _ = node.noTintTextNode.updateLayout(state.constrainedSize)
-                let nodeLayout = MultiScaleTextLayout(size: nodeSize)
+
+                let lineHeight: CGFloat = node.tintTextNode.attributedText.map {
+                    $0.boundingRect(
+                        with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+                        context: nil
+                    ).height
+                } ?? 0
+
+                let linesCount = Int(round(nodeSize.height / lineHeight))
+                let nodeLayout = MultiScaleTextLayout(
+                    size: nodeSize,
+                    linesCount: linesCount,
+                    lastLineWidth: lastLineMaxX(
+                        message: NSAttributedString(
+                            string: text,
+                            attributes: [
+                                .font: state.attributes.font,
+                                .foregroundColor: state.attributes.color,
+                            ]
+                        ),
+                        labelWidth: nodeSize.width,
+                        linesCount: state.attributes.maximumNumberOfLines ?? 1
+                    )
+                )
                 if key == mainState {
                     mainLayout = nodeLayout
                 }
@@ -129,6 +167,27 @@ public final class MultiScaleTextNode: ASDisplayNode {
         return result
     }
     
+    private func lastLineMaxX(message: NSAttributedString, labelWidth: CGFloat, linesCount: Int) -> CGFloat {
+        if linesCount == 1 { return labelWidth }
+
+        let labelSize = CGSize(width: labelWidth, height: .infinity)
+        let layoutManager = NSLayoutManager()
+        let textContainer = NSTextContainer(size: labelSize)
+        let textStorage = NSTextStorage(attributedString: message)
+        layoutManager.addTextContainer(textContainer)
+        textStorage.addLayoutManager(layoutManager)
+        textContainer.lineFragmentPadding = 0.0
+        textContainer.lineBreakMode = .byTruncatingTail
+        textContainer.maximumNumberOfLines = 2
+        let lastGlyphIndex = layoutManager.glyphIndexForCharacter(at: message.length - 1)
+        let lastLineFragmentRect = layoutManager.lineFragmentUsedRect(
+            forGlyphAt: lastGlyphIndex,
+            effectiveRange: nil
+        )
+
+        return lastLineFragmentRect.maxX
+    }
+
     public func update(stateFractions: [AnyHashable: CGFloat], alpha: CGFloat = 1.0, transition: ContainedViewLayoutTransition) {
         var fractionSum: CGFloat = 0.0
         for (_, fraction) in stateFractions {

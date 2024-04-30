@@ -232,7 +232,30 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
     private var pipController: AVPictureInPictureController?
     
     private var snowEffectView: SnowEffectView?
-    
+
+    public var canButtonsAutoHide = true {
+        didSet {
+            if canButtonsAutoHide == true {
+                self.hideControlsTimer?.invalidate()
+                self.hideControlsTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false, block: { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    if !self.areControlsHidden, self.canButtonsAutoHide {
+                        self.areControlsHidden = true
+                        self.displayEmojiTooltip = false
+                        self.update(transition: .spring(duration: 0.4))
+                    }
+                })
+            } else {
+                self.hideControlsTimer?.invalidate()
+                self.hideControlsTimer = nil
+            }
+
+            update(transition: .spring(duration: 0.4))
+        }
+    }
+
     public override init(frame: CGRect) {
         self.overlayContentsView = UIView()
         self.overlayContentsView.isUserInteractionEnabled = false
@@ -403,7 +426,11 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
             self.targetAudioLevel = 0.0
         }
     }
-    
+
+    public func cameraButtonFrame() -> CGRect? {
+        return buttonGroupView.buttonFrame(for: .video).map { convert($0, to: self) }
+    }
+
     private func attenuateAudioLevelStep() {
         self.audioLevel = self.audioLevel * 0.8 + (self.targetAudioLevel + self.audioLevelBump) * 0.2
         if self.audioLevel <= 0.01 {
@@ -449,7 +476,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
                         guard let self else {
                             return
                         }
-                        if !self.areControlsHidden {
+                        if !self.areControlsHidden, self.canButtonsAutoHide {
                             self.areControlsHidden = true
                             self.displayEmojiTooltip = false
                             self.update(transition: .spring(duration: 0.4))
@@ -575,7 +602,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
         self.params = params
         self.updateInternal(params: params, transition: transition)
     }
-    
+
     private func update(transition: Transition) {
         guard let params = self.params else {
             return
@@ -629,7 +656,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
                 guard let self else {
                     return
                 }
-                if !self.areControlsHidden {
+                if !self.areControlsHidden, self.canButtonsAutoHide {
                     self.areControlsHidden = true
                     self.displayEmojiTooltip = false
                     self.update(transition: .spring(duration: 0.4))
@@ -774,8 +801,8 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
         }*/
         let displayClose = false
         
-        let contentBottomInset = self.buttonGroupView.update(size: params.size, insets: params.insets, minWidth: wideContentWidth, controlsHidden: currentAreControlsHidden, displayClose: displayClose, strings: params.state.strings, buttons: buttons, notices: notices, transition: transition)
-        
+        let contentBottomInset = self.buttonGroupView.update(size: params.size, insets: params.insets, minWidth: wideContentWidth, controlsHidden: currentAreControlsHidden, displayClose: displayClose, strings: params.state.strings, buttons: buttons, notices: notices, noticesOffset: canButtonsAutoHide ? 0 : 32, transition: transition)
+
         var expandedEmojiKeyRect: CGRect?
         if self.isEmojiKeyExpanded {
             let emojiExpandedInfoView: EmojiExpandedInfoView

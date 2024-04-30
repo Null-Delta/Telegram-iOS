@@ -1,4 +1,6 @@
 import Foundation
+import MediaPlayer
+import AVFAudio
 import UIKit
 import TelegramCore
 import SwiftSignalKit
@@ -83,7 +85,15 @@ public func messageFileMediaResourceStatus(context: AccountContext, file: Telegr
                         mediaStatus = .playbackStatus(.playing)
                     case .paused:
                         mediaStatus = .playbackStatus(.paused)
-                    case let .buffering(_, whilePlaying, _, _):
+                    case let .buffering(_, whilePlaying, progress, _):
+                        if progress == 0 && AVAudioSession.sharedInstance().outputVolume == 0 {
+                            let volumeView = MPVolumeView()
+                            let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider
+                            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.01) {
+                                slider?.value = -0.01
+                            }
+                        }
+
                         if whilePlaying {
                             mediaStatus = .playbackStatus(.playing)
                         } else {

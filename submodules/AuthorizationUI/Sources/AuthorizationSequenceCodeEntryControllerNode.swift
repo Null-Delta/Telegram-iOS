@@ -665,10 +665,20 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.errorTextNode.alpha = 1.0
         self.errorTextNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.15)
         self.errorTextNode.layer.addShakeAnimation(amplitude: -8.0, duration: 0.5, count: 6, decay: true)
-        
+
+        if let codeType, case .email = codeType, !self.resetNode.isHidden {
+            self.resetNode.alpha = 0
+            self.resetNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15)
+        }
+
         Queue.mainQueue().after(0.85) {
             self.errorTextNode.alpha = 0.0
             self.errorTextNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15)
+
+            if let codeType = self.codeType, case .email = codeType, self.resetNode.isHidden {
+                self.resetNode.alpha = 1
+                self.resetNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.15)
+            }
         }
     }
     

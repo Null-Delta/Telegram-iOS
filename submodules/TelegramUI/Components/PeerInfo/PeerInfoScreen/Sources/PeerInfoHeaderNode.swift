@@ -57,9 +57,6 @@ final class PeerInfoHeaderNavigationTransition {
     }
 }
 
-final class PeerInfoHeaderRegularContentNode: ASDisplayNode {
-}
-
 enum PeerInfoHeaderTextFieldNodeKey: Equatable {
     case firstName
     case lastName
@@ -106,7 +103,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     let buttonsContainerNode: SparseNode
     let buttonsBackgroundNode: NavigationBackgroundNode
     let buttonsMaskView: UIView
-    let regularContentNode: PeerInfoHeaderRegularContentNode
+    let regularContentNode: ASDisplayNode
     let editingContentNode: PeerInfoHeaderEditingContentNode
     let avatarOverlayNode: PeerInfoEditingAvatarOverlayNode
     let titleNodeContainer: ASDisplayNode
@@ -243,7 +240,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         self.buttonsMaskView = UIView()
         self.buttonsBackgroundNode.view.mask = self.buttonsMaskView
         
-        self.regularContentNode = PeerInfoHeaderRegularContentNode()
+        self.regularContentNode = ASDisplayNode()
         var requestUpdateLayoutImpl: (() -> Void)?
         self.editingContentNode = PeerInfoHeaderEditingContentNode(context: context, requestUpdateLayout: {
             requestUpdateLayoutImpl?()
@@ -370,23 +367,14 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     
     override func didLoad() {
         super.didLoad()
-        
+
         let usernameGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.handleUsernameLongPress(_:)))
-        self.usernameNodeRawContainer.view.addGestureRecognizer(usernameGestureRecognizer)
-        
-        let phoneGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.handlePhoneLongPress(_:)))
-        self.subtitleNodeRawContainer.view.addGestureRecognizer(phoneGestureRecognizer)
+        self.subtitleNodeRawContainer.view.addGestureRecognizer(usernameGestureRecognizer)
     }
     
     @objc private func handleUsernameLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
         if gestureRecognizer.state == .began {
-            self.displayCopyContextMenu?(self.usernameNodeRawContainer, !self.isAvatarExpanded, true)
-        }
-    }
-    
-    @objc private func handlePhoneLongPress(_ gestureRecognizer: UILongPressGestureRecognizer) {
-        if gestureRecognizer.state == .began {
-            self.displayCopyContextMenu?(self.subtitleNodeRawContainer, true, !self.isAvatarExpanded)
+            self.displayCopyContextMenu?(self.subtitleNodeRawContainer, true, true)
         }
     }
     
@@ -569,9 +557,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         var transitionSourceAvatarFrame: CGRect?
         var transitionSourceTitleFrame = CGRect()
         var transitionSourceSubtitleFrame = CGRect()
-        
-        let avatarFrame = CGRect(origin: CGPoint(x: floor((width - avatarSize) / 2.0), y: statusBarHeight + (isPreview ? 36.0 : 22.0)), size: CGSize(width: avatarSize, height: avatarSize))
-        
+
+        let avatarTopOffset = isPreview ? 36.0 : 22.0
+        let avatarFrame = CGRect(origin: CGPoint(x: floor((width - avatarSize) / 2.0), y: statusBarHeight + avatarTopOffset), size: CGSize(width: avatarSize, height: avatarSize))
+
         self.backgroundNode.updateColor(color: presentationData.theme.rootController.navigationBar.blurredBackgroundColor, transition: .immediate)
 
         let headerBackgroundColor: UIColor = presentationData.theme.list.blocksBackgroundColor
@@ -626,14 +615,245 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let contentButtonForegroundColor: UIColor
         
         let headerButtonBackgroundColor: UIColor
-        
-        var panelWithAvatarHeight: CGFloat = 35.0 + avatarSize
+
+        let innerBackgroundTransitionFraction: CGFloat
+
+        var isPremium = false
+        var isVerified = false
+        var isFake = false
+        let titleStringText: String
+        let smallTitleAttributes: MultiScaleTextState.Attributes
+        let titleAttributes: MultiScaleTextState.Attributes
+        let subtitleStringText: String
+        let smallSubtitleAttributes: MultiScaleTextState.Attributes
+        let subtitleAttributes: MultiScaleTextState.Attributes
+        var subtitleIsButton: Bool = false
+        var panelSubtitleString: (text: String, attributes: MultiScaleTextState.Attributes)?
+        let usernameString: (text: String, attributes: MultiScaleTextState.Attributes)
+        if let peer = peer {
+            isPremium = peer.isPremium
+            isVerified = peer.isVerified
+            isFake = peer.isFake || peer.isScam
+        }
+
+        let titleShadowColor: UIColor? = nil
+
+        var displayStandardTitle = false
+
+        if let peer = peer {
+            var title: String
+            if peer.id == self.context.account.peerId && !self.isSettings && !self.isMyProfile {
+                if case .replyThread = self.chatLocation {
+                    title = presentationData.strings.Conversation_MyNotes
+                } else {
+                    displayStandardTitle = true
+                    title = presentationData.strings.Conversation_SavedMessages
+                }
+            } else if peer.id.isAnonymousSavedMessages {
+                title = presentationData.strings.ChatList_AuthorHidden
+            } else if let threadData = threadData {
+                title = threadData.info.title
+            } else {
+                title = EnginePeer(peer).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+            }
+            title = title.replacingOccurrences(of: "\u{1160}", with: "").replacingOccurrences(of: "\u{3164}", with: "")
+            if title.isEmpty {
+                if let peer = peer as? TelegramUser, let phone = peer.phone {
+                    title = formatPhoneNumber(context: self.context, number: phone)
+                } else if let addressName = peer.addressName {
+                    title = "@\(addressName)"
+                } else {
+                    title = " "
+                }
+            }
+
+            titleStringText = title
+            titleAttributes = MultiScaleTextState.Attributes(
+                font: isPreview ? Font.semibold(28.0) : Font.medium(28.0),
+                color: .white,
+                alignment: isPreview ? .center : .left,
+                maximumNumberOfLines: isPreview ? 2 : nil
+            )
+            smallTitleAttributes = MultiScaleTextState.Attributes(
+                font: Font.medium(28.0),
+                color: .white,
+                shadowColor: titleShadowColor,
+                maximumNumberOfLines: isPreview ? 2 : nil
+            )
+
+            if self.isSettings, let user = peer as? TelegramUser {
+                var subtitle = formatPhoneNumber(context: self.context, number: user.phone ?? "")
+
+                if let mainUsername = user.addressName, !mainUsername.isEmpty {
+                    subtitle = "\(subtitle) • @\(mainUsername)"
+                }
+                subtitleStringText = subtitle
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: .white)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+            } else if self.isMyProfile {
+                let subtitleColor: UIColor
+                subtitleColor = .white
+
+                subtitleStringText = presentationData.strings.Presence_online
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+
+                let (maybePanelStatusData, _, _) = panelStatusData
+                if let panelStatusData = maybePanelStatusData {
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: UIColor.white))
+                }
+            } else if let _ = threadData {
+                let subtitleColor: UIColor
+                subtitleColor = UIColor.white
+
+                let statusText: String
+                statusText = peer.debugDisplayTitle
+
+                subtitleStringText = statusText
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.semibold(16.0), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+
+                subtitleIsButton = true
+
+                let (maybePanelStatusData, _, _) = panelStatusData
+                if let panelStatusData = maybePanelStatusData {
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: UIColor.white))
+                }
+            } else if let statusData = statusData {
+                let subtitleColor: UIColor
+                if statusData.isActivity {
+                    subtitleColor = UIColor.white
+                } else {
+                    subtitleColor = UIColor.white
+                }
+
+                subtitleStringText = statusData.text
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+
+                let (maybePanelStatusData, _, _) = panelStatusData
+                if let panelStatusData = maybePanelStatusData {
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: UIColor.white))
+                }
+            } else {
+                subtitleStringText = " "
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+
+                let (maybePanelStatusData, _, _) = panelStatusData
+                if let panelStatusData = maybePanelStatusData {
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: UIColor.white))
+                }
+            }
+        } else {
+            if let contactInfo {
+                var fullName = [contactInfo.firstName, contactInfo.lastName].filter { !$0.isEmpty }.joined(separator: " ")
+
+                if fullName.isEmpty {
+                    fullName = contactInfo.phoneNumber
+                }
+
+                titleStringText = fullName
+                titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white)
+                smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
+            } else {
+                titleStringText = ""
+                titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white)
+                smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
+            }
+
+            if let statusData = statusData {
+                let subtitleColor: UIColor
+                if statusData.isActivity {
+                    subtitleColor = UIColor.white
+                } else {
+                    subtitleColor = UIColor.white
+                }
+
+                subtitleStringText = statusData.text
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+
+                let (maybePanelStatusData, _, _) = panelStatusData
+                if let panelStatusData = maybePanelStatusData {
+                    let subtitleColor: UIColor
+                    if panelStatusData.isActivity {
+                        subtitleColor = UIColor.white
+                    } else {
+                        subtitleColor = UIColor.white
+                    }
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
+                }
+            } else {
+                subtitleStringText = " "
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+            }
+        }
+
+        if let previousPanelStatusData = previousPanelStatusData, let currentPanelStatusData = panelStatusData.0, let previousPanelStatusDataKey = previousPanelStatusData.key, let currentPanelStatusDataKey = currentPanelStatusData.key, previousPanelStatusDataKey != currentPanelStatusDataKey {
+            if let snapshotView = self.panelSubtitleNode.view.snapshotContentTree() {
+                let direction: CGFloat = previousPanelStatusDataKey.rawValue > currentPanelStatusDataKey.rawValue ? 1.0 : -1.0
+
+                self.panelSubtitleNode.view.superview?.addSubview(snapshotView)
+                snapshotView.frame = self.panelSubtitleNode.frame
+                snapshotView.layer.animatePosition(from: CGPoint(), to: CGPoint(x: 100.0 * direction, y: 0.0), duration: 0.4, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false, additive: true, completion: { [weak snapshotView] _ in
+                    snapshotView?.removeFromSuperview()
+                })
+                snapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false)
+
+                self.panelSubtitleNode.layer.animatePosition(from: CGPoint(x: 100.0 * direction * -1.0, y: 0.0), to: CGPoint(), duration: 0.4, timingFunction: kCAMediaTimingFunctionSpring, additive: true)
+                self.panelSubtitleNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
+            }
+        }
+
+        let textSideInset: CGFloat = 36.0
+        let titleConstrainedSize = CGSize(width: width - textSideInset * 2.0 - (isPremium || isVerified || isFake ? 20.0 : 0.0), height: .greatestFiniteMagnitude)
+
+        let _ = self.panelSubtitleNode.updateLayout(text: panelSubtitleString?.text ?? subtitleStringText, states: [
+            TitleNodeStateRegular: MultiScaleTextState(attributes: panelSubtitleString?.attributes ?? subtitleAttributes, constrainedSize: titleConstrainedSize),
+            TitleNodeStateExpanded: MultiScaleTextState(attributes: panelSubtitleString?.attributes ?? subtitleAttributes, constrainedSize: titleConstrainedSize)
+        ], mainState: TitleNodeStateRegular)
+        self.panelSubtitleNode.accessibilityLabel = panelSubtitleString?.text ?? subtitleStringText
+
+        let titleNodeLayout = self.titleNode.updateLayout(text: titleStringText, states: [
+            TitleNodeStateRegular: MultiScaleTextState(attributes: titleAttributes, constrainedSize: titleConstrainedSize),
+            TitleNodeStateExpanded: MultiScaleTextState(attributes: smallTitleAttributes, constrainedSize: titleConstrainedSize)
+        ], mainState: TitleNodeStateRegular)
+
+        let subtitleNodeLayout = self.subtitleNode.updateLayout(text: subtitleStringText, states: [
+            TitleNodeStateRegular: MultiScaleTextState(attributes: subtitleAttributes, constrainedSize: titleConstrainedSize),
+            TitleNodeStateExpanded: MultiScaleTextState(attributes: smallSubtitleAttributes, constrainedSize: titleConstrainedSize)
+        ], mainState: TitleNodeStateRegular)
+
+        let titleSize = titleNodeLayout[TitleNodeStateRegular]!.size
+        let titleLinesCount = titleNodeLayout[TitleNodeStateRegular]!.linesCount
+        let titleExpandedSize = titleNodeLayout[TitleNodeStateExpanded]!.size
+        let titleExpandedLinesCount = titleNodeLayout[TitleNodeStateExpanded]!.linesCount
+        let subtitleSize = subtitleNodeLayout[TitleNodeStateRegular]!.size
+
+        let collapsedTitleTopOffsetFromAvatarBottom = 9.0 + (subtitleSize.height.isZero ? 11.0 : 0.0)
+
+        var panelWithAvatarHeight: CGFloat = avatarSize + avatarTopOffset
+            + titleSize.height + subtitleSize.height + collapsedTitleTopOffsetFromAvatarBottom + statusBarHeight
         if threadData != nil {
             panelWithAvatarHeight += 10.0
         }
-        
-        let innerBackgroundTransitionFraction: CGFloat
-        
+
         let navigationTransition: ContainedViewLayoutTransition
         if transition.isAnimated {
             navigationTransition = transition
@@ -697,7 +917,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             self.avatarClippingNode.clipsToBounds = false
         } else {
             let backgroundTransitionStepDistance: CGFloat = 50.0
-            var backgroundTransitionDistance: CGFloat = navigationHeight + panelWithAvatarHeight - backgroundTransitionStepDistance
+            var backgroundTransitionDistance: CGFloat = panelWithAvatarHeight - backgroundTransitionStepDistance
             if self.isSettings || self.isPreview || self.isMyProfile {
                 backgroundTransitionDistance -= 100.0
             }
@@ -760,8 +980,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 navigationContentsCanBeExpanded = true
             }
             
-            contentButtonBackgroundColor = regularContentButtonBackgroundColor//.mixedWith(collapsedHeaderContentButtonBackgroundColor, alpha: effectiveTransitionFraction)
-            contentButtonForegroundColor = regularContentButtonForegroundColor//.mixedWith(collapsedHeaderContentButtonForegroundColor, alpha: effectiveTransitionFraction)
+            contentButtonBackgroundColor = regularContentButtonBackgroundColor
+            contentButtonForegroundColor = regularContentButtonForegroundColor
             
             headerButtonBackgroundColor = regularHeaderButtonBackgroundColor.mixedWith(collapsedHeaderButtonBackgroundColor, alpha: effectiveTransitionFraction)
         }
@@ -986,7 +1206,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         if isMediaOnly {
             navigationSeparatorAlpha = 0.0
         } else {
-            navigationSeparatorAlpha = state.isEditing && self.isSettings || self.isPreview ? min(1.0, contentOffset / (navigationHeight * 0.5)) : 0.0
+            navigationSeparatorAlpha = state.isEditing && self.isSettings || self.isPreview || self.isMyProfile ? min(1.0, contentOffset / (navigationHeight * 0.5)) : 0.0
         }
         transition.updateAlpha(node: self.navigationBackgroundBackgroundNode, alpha: 1.0 - navigationSeparatorAlpha)
         transition.updateAlpha(node: self.navigationSeparatorNode, alpha: navigationSeparatorAlpha)
@@ -995,8 +1215,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let expandedAvatarControlsHeight: CGFloat = 61.0
         var expandedAvatarListHeight = min(width, containerHeight - expandedAvatarControlsHeight)
+        let expandedAvatarListBottomPadding = 6.0
         if self.isSettings || self.isPreview || self.isMyProfile {
-            expandedAvatarListHeight = expandedAvatarListHeight + 60.0
+            expandedAvatarListHeight = expandedAvatarListHeight + titleSize.height + subtitleSize.height + expandedAvatarListBottomPadding
         } else {
             expandedAvatarListHeight = expandedAvatarListHeight + 98.0
         }
@@ -1006,221 +1227,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let actionButtonKeys: [PeerInfoHeaderButtonKey] = self.isSettings || self.isPreview || self.isMyProfile ? [] : peerInfoHeaderActionButtons(peer: peer, isSecretChat: isSecretChat, isContact: isContact)
         let buttonKeys: [PeerInfoHeaderButtonKey] = self.isSettings || self.isPreview || self.isMyProfile ? [] : peerInfoHeaderButtons(peer: peer, cachedData: cachedData, isOpenedFromChat: self.isOpenedFromChat, isExpanded: true, videoCallsEnabled: width > 320.0 && self.videoCallsEnabled, isSecretChat: isSecretChat, isContact: isContact, threadInfo: threadData?.info)
         
-        var isPremium = false
-        var isVerified = false
-        var isFake = false
-        let titleStringText: String
-        let smallTitleAttributes: MultiScaleTextState.Attributes
-        let titleAttributes: MultiScaleTextState.Attributes
-        let subtitleStringText: String
-        let smallSubtitleAttributes: MultiScaleTextState.Attributes
-        let subtitleAttributes: MultiScaleTextState.Attributes
-        var subtitleIsButton: Bool = false
-        var panelSubtitleString: (text: String, attributes: MultiScaleTextState.Attributes)?
-        let usernameString: (text: String, attributes: MultiScaleTextState.Attributes)
-        if let peer = peer {
-            isPremium = peer.isPremium
-            isVerified = peer.isVerified
-            isFake = peer.isFake || peer.isScam
-        }
-        
-        let titleShadowColor: UIColor? = nil
-        
-        var displayStandardTitle = false
-        
-        if let peer = peer {
-            var title: String
-            if peer.id == self.context.account.peerId && !self.isSettings && !self.isMyProfile {
-                if case .replyThread = self.chatLocation {
-                    title = presentationData.strings.Conversation_MyNotes
-                } else {
-                    displayStandardTitle = true
-                    title = presentationData.strings.Conversation_SavedMessages
-                }
-            } else if peer.id.isAnonymousSavedMessages {
-                title = presentationData.strings.ChatList_AuthorHidden
-            } else if let threadData = threadData {
-                title = threadData.info.title
-            } else {
-                title = EnginePeer(peer).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-            }
-            title = title.replacingOccurrences(of: "\u{1160}", with: "").replacingOccurrences(of: "\u{3164}", with: "")
-            if title.isEmpty {
-                if let peer = peer as? TelegramUser, let phone = peer.phone {
-                    title = formatPhoneNumber(context: self.context, number: phone)
-                } else if let addressName = peer.addressName {
-                    title = "@\(addressName)"
-                } else {
-                    title = " "
-                }
-            }
-
-            titleStringText = title
-            titleAttributes = MultiScaleTextState.Attributes(font: isPreview ? Font.semibold(28.0) : Font.medium(28.0), color: .white)
-            smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.medium(28.0), color: .white, shadowColor: titleShadowColor)
-            
-            if self.isSettings, let user = peer as? TelegramUser {
-                var subtitle = formatPhoneNumber(context: self.context, number: user.phone ?? "")
-                
-                if let mainUsername = user.addressName, !mainUsername.isEmpty {
-                    subtitle = "\(subtitle) • @\(mainUsername)"
-                }
-                subtitleStringText = subtitle
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: .white)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-                
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-            } else if self.isMyProfile {
-                let subtitleColor: UIColor
-                subtitleColor = .white
-                
-                subtitleStringText = presentationData.strings.Presence_online
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-                
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-
-                let (maybePanelStatusData, _, _) = panelStatusData
-                if let panelStatusData = maybePanelStatusData {
-                    let subtitleColor: UIColor
-                    if panelStatusData.isActivity {
-                        subtitleColor = UIColor.white
-                    } else {
-                        subtitleColor = UIColor.white
-                    }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
-                }
-            } else if let _ = threadData {
-                let subtitleColor: UIColor
-                subtitleColor = UIColor.white
-                
-                let statusText: String
-                statusText = peer.debugDisplayTitle
-                
-                subtitleStringText = statusText
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.semibold(16.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-                
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-                
-                subtitleIsButton = true
-
-                let (maybePanelStatusData, _, _) = panelStatusData
-                if let panelStatusData = maybePanelStatusData {
-                    let subtitleColor: UIColor
-                    if panelStatusData.isActivity {
-                        subtitleColor = UIColor.white
-                    } else {
-                        subtitleColor = UIColor.white
-                    }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
-                }
-            } else if let statusData = statusData {
-                let subtitleColor: UIColor
-                if statusData.isActivity {
-                    subtitleColor = UIColor.white
-                } else {
-                    subtitleColor = UIColor.white
-                }
-                
-                subtitleStringText = statusData.text
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-                
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-
-                let (maybePanelStatusData, _, _) = panelStatusData
-                if let panelStatusData = maybePanelStatusData {
-                    let subtitleColor: UIColor
-                    if panelStatusData.isActivity {
-                        subtitleColor = UIColor.white
-                    } else {
-                        subtitleColor = UIColor.white
-                    }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
-                }
-            } else {
-                subtitleStringText = " "
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-                
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-                
-                let (maybePanelStatusData, _, _) = panelStatusData
-                if let panelStatusData = maybePanelStatusData {
-                    let subtitleColor: UIColor
-                    if panelStatusData.isActivity {
-                        subtitleColor = UIColor.white
-                    } else {
-                        subtitleColor = UIColor.white
-                    }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
-                }
-            }
-        } else {
-            if let contactInfo {
-                var fullName = [contactInfo.firstName, contactInfo.lastName].filter { !$0.isEmpty }.joined(separator: " ")
-
-                if fullName.isEmpty {
-                    fullName = contactInfo.phoneNumber
-                }
-                
-                titleStringText = fullName
-                titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white)
-                smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
-            } else {
-                titleStringText = ""
-                titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white)
-                smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
-            }
-
-            if let statusData = statusData {
-                let subtitleColor: UIColor
-                if statusData.isActivity {
-                    subtitleColor = UIColor.white
-                } else {
-                    subtitleColor = UIColor.white
-                }
-
-                subtitleStringText = statusData.text
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-
-                let (maybePanelStatusData, _, _) = panelStatusData
-                if let panelStatusData = maybePanelStatusData {
-                    let subtitleColor: UIColor
-                    if panelStatusData.isActivity {
-                        subtitleColor = UIColor.white
-                    } else {
-                        subtitleColor = UIColor.white
-                    }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
-                }
-            } else {
-                subtitleStringText = " "
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
-
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
-            }
-        }
-        
-        let textSideInset: CGFloat = 36.0
+        //MARK: - title/subtitle
         let expandedAvatarHeight: CGFloat = expandedAvatarListSize.height
-        
-        let titleConstrainedSize = CGSize(width: width - textSideInset * 2.0 - (isPremium || isVerified || isFake ? 20.0 : 0.0), height: .greatestFiniteMagnitude)
-        
-        let titleNodeLayout = self.titleNode.updateLayout(text: titleStringText, states: [
-            TitleNodeStateRegular: MultiScaleTextState(attributes: titleAttributes, constrainedSize: titleConstrainedSize),
-            TitleNodeStateExpanded: MultiScaleTextState(attributes: smallTitleAttributes, constrainedSize: titleConstrainedSize)
-        ], mainState: TitleNodeStateRegular)
-        
-        let subtitleNodeLayout = self.subtitleNode.updateLayout(text: subtitleStringText, states: [
-            TitleNodeStateRegular: MultiScaleTextState(attributes: subtitleAttributes, constrainedSize: titleConstrainedSize),
-            TitleNodeStateExpanded: MultiScaleTextState(attributes: smallSubtitleAttributes, constrainedSize: titleConstrainedSize)
-        ], mainState: TitleNodeStateRegular)
         self.subtitleNode.accessibilityLabel = subtitleStringText
         
         if subtitleIsButton {
@@ -1297,29 +1305,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 subtitleBackgroundButton.removeFromSupernode()
             }
         }
-        
-        if let previousPanelStatusData = previousPanelStatusData, let currentPanelStatusData = panelStatusData.0, let previousPanelStatusDataKey = previousPanelStatusData.key, let currentPanelStatusDataKey = currentPanelStatusData.key, previousPanelStatusDataKey != currentPanelStatusDataKey {
-            if let snapshotView = self.panelSubtitleNode.view.snapshotContentTree() {
-                let direction: CGFloat = previousPanelStatusDataKey.rawValue > currentPanelStatusDataKey.rawValue ? 1.0 : -1.0
-                
-                self.panelSubtitleNode.view.superview?.addSubview(snapshotView)
-                snapshotView.frame = self.panelSubtitleNode.frame
-                snapshotView.layer.animatePosition(from: CGPoint(), to: CGPoint(x: 100.0 * direction, y: 0.0), duration: 0.4, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false, additive: true, completion: { [weak snapshotView] _ in
-                    snapshotView?.removeFromSuperview()
-                })
-                snapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false)
-                
-                self.panelSubtitleNode.layer.animatePosition(from: CGPoint(x: 100.0 * direction * -1.0, y: 0.0), to: CGPoint(), duration: 0.4, timingFunction: kCAMediaTimingFunctionSpring, additive: true)
-                self.panelSubtitleNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
-            }
-        }
-        
-        let panelSubtitleNodeLayout = self.panelSubtitleNode.updateLayout(text: panelSubtitleString?.text ?? subtitleStringText, states: [
-            TitleNodeStateRegular: MultiScaleTextState(attributes: panelSubtitleString?.attributes ?? subtitleAttributes, constrainedSize: titleConstrainedSize),
-            TitleNodeStateExpanded: MultiScaleTextState(attributes: panelSubtitleString?.attributes ?? subtitleAttributes, constrainedSize: titleConstrainedSize)
-        ], mainState: TitleNodeStateRegular)
-        self.panelSubtitleNode.accessibilityLabel = panelSubtitleString?.text ?? subtitleStringText
-        
+
         let usernameNodeLayout = self.usernameNode.updateLayout(text: usernameString.text, states: [
             TitleNodeStateRegular: MultiScaleTextState(attributes: usernameString.attributes, constrainedSize: CGSize(width: titleConstrainedSize.width, height: titleConstrainedSize.height)),
             TitleNodeStateExpanded: MultiScaleTextState(attributes: usernameString.attributes, constrainedSize: CGSize(width: width - titleNodeLayout[TitleNodeStateExpanded]!.size.width - 8.0, height: titleConstrainedSize.height))
@@ -1332,14 +1318,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         } else {
             avatarCenter = avatarFrame.center
         }
-        
-        let titleSize = titleNodeLayout[TitleNodeStateRegular]!.size
-        let titleExpandedSize = titleNodeLayout[TitleNodeStateExpanded]!.size
-        let subtitleSize = subtitleNodeLayout[TitleNodeStateRegular]!.size
-        var subtitleBadgeSize: CGSize?
-        let _ = panelSubtitleNodeLayout[TitleNodeStateRegular]!.size
+
         let usernameSize = usernameNodeLayout[TitleNodeStateRegular]!.size
-        
+        var subtitleBadgeSize: CGSize?
+
         if let statusData, statusData.isHiddenStatus, !self.isPremiumDisabled, !isPreview {
             let subtitleBadgeView: PeerInfoSubtitleBadgeView
             if let current = self.subtitleBadgeView {
@@ -1360,26 +1342,33 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             subtitleBadgeView.removeFromSuperview()
         }
         
-        var titleHorizontalOffset: CGFloat = 0.0
-        var nextIconX: CGFloat = titleSize.width
-        var nextExpandedIconX: CGFloat = titleExpandedSize.width
-        
+        var nextIconX: CGFloat = titleSize.width / 2 + titleNodeLayout[TitleNodeStateRegular]!.lastLineWidth / 2
+        var nextExpandedIconX: CGFloat = titleNodeLayout[TitleNodeStateExpanded]!.lastLineWidth
+
+        let fullLastRegularTitleLineWidth: CGFloat = titleNodeLayout[TitleNodeStateRegular]!.lastLineWidth
+        + (credibilityIconSize.map { 4.0 + $0.width } ?? 0.0)
+        + (verifiedIconSize.map { 4.0 + $0.width } ?? 0.0)
+
+        let titleHorizontalOffset: CGFloat = -abs(titleSize.width - max(titleSize.width, fullLastRegularTitleLineWidth)) / 2.0
+
         if let credibilityIconSize = self.credibilityIconSize, let titleExpandedCredibilityIconSize = self.titleExpandedCredibilityIconSize {
-            titleHorizontalOffset += -(credibilityIconSize.width + 4.0) / 2.0
-            
             var collapsedTransitionOffset: CGFloat = 0.0
             if let navigationTransition = self.navigationTransition {
                 collapsedTransitionOffset = -10.0 * navigationTransition.fraction
             }
             
-            transition.updateFrame(view: self.titleCredibilityIconView, frame: CGRect(origin: CGPoint(x: nextIconX + 4.0 + collapsedTransitionOffset, y: floor((titleSize.height - credibilityIconSize.height) / 2.0)), size: credibilityIconSize))
+            let titleLineHeight = titleSize.height / CGFloat(titleLinesCount)
+            let titleExpandedLineHeight = titleExpandedSize.height / CGFloat(titleExpandedLinesCount)
+            let nextIconY = floor((titleLineHeight - credibilityIconSize.height) / 2.0 + titleLineHeight * CGFloat(titleLinesCount - 1))
+            let nextExpandedIconY = floor((titleExpandedLineHeight - titleExpandedCredibilityIconSize.height) / 2.0 + titleExpandedLineHeight * CGFloat(titleExpandedLinesCount - 1))
+
+            transition.updateFrame(view: self.titleCredibilityIconView, frame: CGRect(origin: CGPoint(x: nextIconX + 4.0 + collapsedTransitionOffset, y: nextIconY), size: credibilityIconSize))
             nextIconX += 4.0 + credibilityIconSize.width
-            transition.updateFrame(view: self.titleExpandedCredibilityIconView, frame: CGRect(origin: CGPoint(x: nextExpandedIconX + 4.0, y: floor((titleExpandedSize.height - titleExpandedCredibilityIconSize.height) / 2.0) + 1.0), size: titleExpandedCredibilityIconSize))
+            transition.updateFrame(view: self.titleExpandedCredibilityIconView, frame: CGRect(origin: CGPoint(x: nextExpandedIconX + 4.0, y: nextExpandedIconY), size: titleExpandedCredibilityIconSize))
             nextExpandedIconX += 4.0 + titleExpandedCredibilityIconSize.width
         }
         
         if let verifiedIconSize = self.verifiedIconSize, let titleExpandedVerifiedIconSize = self.titleExpandedVerifiedIconSize {
-            titleHorizontalOffset += -(verifiedIconSize.width + 4.0) / 2.0
             
             var collapsedTransitionOffset: CGFloat = 0.0
             if let navigationTransition = self.navigationTransition {
@@ -1399,7 +1388,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let expandedTitleScale: CGFloat = 0.8
         
-        var bottomShadowHeight: CGFloat = 88.0
+        var bottomShadowHeight: CGFloat = 24 + titleSize.height + 2.0 + subtitleSize.height + expandedAvatarListBottomPadding
         if !self.isSettings && !self.isPreview && !self.isMyProfile {
             bottomShadowHeight += 100.0
         }
@@ -1416,7 +1405,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         if self.isAvatarExpanded {
             let minTitleSize = CGSize(width: titleSize.width * expandedTitleScale, height: titleSize.height * expandedTitleScale)
-            var minTitleFrame = CGRect(origin: CGPoint(x: 16.0, y: expandedAvatarHeight - 58.0 - UIScreenPixel + (subtitleSize.height.isZero ? 10.0 : 0.0)), size: minTitleSize)
+            var minTitleFrame = CGRect(origin: CGPoint(x: 16.0, y: expandedAvatarHeight - subtitleSize.height - titleSize.height - expandedAvatarListBottomPadding - UIScreenPixel), size: minTitleSize)
             if !self.isSettings && !self.isPreview && !self.isMyProfile {
                 minTitleFrame.origin.y -= 83.0
             }
@@ -1433,8 +1422,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             subtitleFrame = CGRect(origin: CGPoint(x: 16.0, y: minTitleFrame.maxY + 2.0), size: subtitleSize)
             usernameFrame = CGRect(origin: CGPoint(x: width - usernameSize.width - 16.0, y: minTitleFrame.midY - usernameSize.height / 2.0), size: usernameSize)
         } else {
-            titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((width - titleSize.width) / 2.0), y: avatarFrame.maxY + 9.0 + (subtitleSize.height.isZero ? 11.0 : 0.0)), size: titleSize)
-            
+            titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((width - titleSize.width) / 2.0), y: avatarFrame.maxY + collapsedTitleTopOffsetFromAvatarBottom), size: titleSize)
+
             var titleCollapseOffset = titleFrame.midY - statusBarHeight - titleLockOffset - (isPreview ? 8.0 : 0.0)
             if case .regular = metrics.widthClass, !isSettings, !isPreview, !isMyProfile {
                 titleCollapseOffset -= 7.0
@@ -1765,17 +1754,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             self.avatarListNode.avatarContainerNode.canAttachVideo = false
         }
         
-        let rawHeight: CGFloat
-        let height: CGFloat
-        let maxY: CGFloat
         let backgroundHeight: CGFloat
         if self.isAvatarExpanded {
-            rawHeight = expandedAvatarHeight
-            height = max(navigationHeight, rawHeight - contentOffset)
-            maxY = height - 98.0
-            backgroundHeight = height
+            backgroundHeight = max(navigationHeight, expandedAvatarHeight - contentOffset)
         } else {
-            rawHeight = navigationHeight + panelWithAvatarHeight
             var expandablePart: CGFloat = panelWithAvatarHeight - contentOffset
             if self.isSettings || self.isPreview || self.isMyProfile {
                 expandablePart += 20.0
@@ -1788,12 +1770,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     expandablePart += 99.0
                 }
             }
-            height = navigationHeight + max(0.0, expandablePart)
-            maxY = navigationHeight + panelWithAvatarHeight - contentOffset
-            backgroundHeight = height
+            backgroundHeight = max(navigationHeight, expandablePart)
         }
-        let _ = maxY
-        
+
         let apparentHeight = (1.0 - transitionFraction) * backgroundHeight + transitionFraction * transitionSourceHeight
         let apparentBackgroundHeight = (1.0 - transitionFraction) * backgroundHeight + transitionFraction * transitionSourceHeight
         
@@ -1933,7 +1912,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let innerButtonsTransitionStepDistance: CGFloat = 58.0
         let innerButtonsTransitionStepInset: CGFloat = 28.0
-        let innerButtonsTransitionDistance: CGFloat = navigationHeight + panelWithAvatarHeight - innerButtonsTransitionStepDistance - innerButtonsTransitionStepInset
+        let innerButtonsTransitionDistance: CGFloat = panelWithAvatarHeight - innerButtonsTransitionStepDistance - innerButtonsTransitionStepInset
         let innerButtonsContentOffset = max(0.0, contentOffset - innerButtonsTransitionDistance)
         let innerButtonsTransitionFraction = max(0.0, min(1.0, innerButtonsContentOffset / innerButtonsTransitionStepDistance))
         
@@ -2127,7 +2106,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         if self.isAvatarExpanded {
             resolvedRegularHeight = expandedAvatarListSize.height
         } else {
-            resolvedRegularHeight = panelWithAvatarHeight + navigationHeight
+            resolvedRegularHeight = panelWithAvatarHeight
         }
         
         let backgroundFrame: CGRect
@@ -2281,7 +2260,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         if result.isDescendant(of: self.navigationButtonContainer.view) {
             return result
         }
-        
+
+        if let result = self.subtitleNodeRawContainer.view.hitTest(self.view.convert(point, to: self.subtitleNodeRawContainer.view), with: event) {
+            return result
+        }
+
         if let result = self.buttonsContainerNode.view.hitTest(self.view.convert(point, to: self.buttonsContainerNode.view), with: event) {
             return result
         }

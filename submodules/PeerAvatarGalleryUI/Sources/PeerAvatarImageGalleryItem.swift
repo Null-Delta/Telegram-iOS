@@ -410,7 +410,9 @@ final class PeerAvatarImageGalleryItemNode: ZoomableContentGalleryItemNode {
         surfaceCopyView.addSubview(surfaceCopyViewContents)
         
         addToTransitionSurface(surfaceCopyView)
-        
+
+        let durationFactor = 1.0
+
         var transformedSurfaceFrame: CGRect?
         var transformedSurfaceFinalFrame: CGRect?
         if let contentSurface = surfaceCopyView.superview {
@@ -423,11 +425,11 @@ final class PeerAvatarImageGalleryItemNode: ZoomableContentGalleryItemNode {
             surfaceCopyView.layer.sublayerTransform = CATransform3DMakeScale(transformedSurfaceFrame.width / surfaceCopyViewContents.frame.width, transformedSurfaceFrame.height / surfaceCopyViewContents.frame.height, 1.0)
             surfaceCopyView.frame = transformedSurfaceFrame
             
-            surfaceCopyView.layer.animatePosition(from: CGPoint(x: transformedSurfaceFrame.midX, y: transformedSurfaceFrame.midY), to: CGPoint(x: transformedSurfaceFinalFrame.midX, y: transformedSurfaceFinalFrame.midY), duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
+            surfaceCopyView.layer.animatePosition(from: CGPoint(x: transformedSurfaceFrame.midX, y: transformedSurfaceFrame.midY), to: CGPoint(x: transformedSurfaceFinalFrame.midX, y: transformedSurfaceFinalFrame.midY), duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
             let scale = CGSize(width: transformedSurfaceFinalFrame.size.width / transformedSurfaceFrame.size.width, height: transformedSurfaceFrame.size.height / transformedSelfFrame.size.height)
-            surfaceCopyView.layer.animate(from: NSValue(caTransform3D: CATransform3DIdentity), to: NSValue(caTransform3D: CATransform3DMakeScale(scale.width, scale.height, 1.0)), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25, removeOnCompletion: false)
-            
-            surfaceCopyView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { [weak surfaceCopyView] _ in
+            surfaceCopyView.layer.animate(from: NSValue(caTransform3D: CATransform3DIdentity), to: NSValue(caTransform3D: CATransform3DMakeScale(scale.width, scale.height, 1.0)), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25 * durationFactor, removeOnCompletion: false)
+
+            surfaceCopyView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25 * durationFactor, removeOnCompletion: false, completion: { [weak surfaceCopyView] _ in
                 surfaceCopyView?.removeFromSuperview()
             })
         }
@@ -437,33 +439,32 @@ final class PeerAvatarImageGalleryItemNode: ZoomableContentGalleryItemNode {
         }
         copyView.frame = transformedSelfFrame
         
-        copyView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { [weak copyView] _ in
+        copyView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25 * durationFactor, removeOnCompletion: false, completion: { [weak copyView] _ in
             copyView?.removeFromSuperview()
         })
         
-        copyView.layer.animatePosition(from: CGPoint(x: transformedSelfFrame.midX, y: transformedSelfFrame.midY), to: CGPoint(x: transformedCopyViewFinalFrame.midX, y: transformedCopyViewFinalFrame.midY), duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
+        copyView.layer.animatePosition(from: CGPoint(x: transformedSelfFrame.midX, y: transformedSelfFrame.midY), to: CGPoint(x: transformedCopyViewFinalFrame.midX, y: transformedCopyViewFinalFrame.midY), duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false)
         let scale = CGSize(width: transformedCopyViewFinalFrame.size.width / transformedSelfFrame.size.width, height: transformedCopyViewFinalFrame.size.height / transformedSelfFrame.size.height)
-        copyView.layer.animate(from: NSValue(caTransform3D: CATransform3DIdentity), to: NSValue(caTransform3D: CATransform3DMakeScale(scale.width, scale.height, 1.0)), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25, removeOnCompletion: false)
-        
-        self.contentNode.layer.animatePosition(from: CGPoint(x: transformedSuperFrame.midX, y: transformedSuperFrame.midY), to: self.contentNode.layer.position, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring, completion: { _ in
+        copyView.layer.animate(from: NSValue(caTransform3D: CATransform3DIdentity), to: NSValue(caTransform3D: CATransform3DMakeScale(scale.width, scale.height, 1.0)), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25 * durationFactor, removeOnCompletion: false)
+
+        self.contentNode.layer.animatePosition(from: CGPoint(x: transformedSuperFrame.midX, y: transformedSuperFrame.midY), to: self.contentNode.layer.position, duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring, completion: { _ in
             completion()
         })
         
         if let _ = self.videoNode {
             self.contentNode.view.superview?.bringSubviewToFront(self.contentNode.view)
         } else {
-            self.contentNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.07)
+            self.contentNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.07 * durationFactor)
         }
         
         transformedFrame.origin = CGPoint()
-        //self.imageNode.layer.animateBounds(from: transformedFrame, to: self.imageNode.layer.bounds, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring)
-        
+
         let transform = CATransform3DScale(self.contentNode.layer.transform, transformedFrame.size.width / self.contentNode.layer.bounds.size.width, transformedFrame.size.height / self.contentNode.layer.bounds.size.height, 1.0)
-        self.contentNode.layer.animate(from: NSValue(caTransform3D: transform), to: NSValue(caTransform3D: self.contentNode.layer.transform), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25)
-        
+        self.contentNode.layer.animate(from: NSValue(caTransform3D: transform), to: NSValue(caTransform3D: self.contentNode.layer.transform), keyPath: "transform", timingFunction: kCAMediaTimingFunctionSpring, duration: 0.25 * durationFactor)
+
         self.contentNode.clipsToBounds = true
         if case .round = self.sourceCorners {
-            self.contentNode.layer.animate(from: (self.contentNode.frame.width / 2.0) as NSNumber, to: 0.0 as NSNumber, keyPath: "cornerRadius", timingFunction: CAMediaTimingFunctionName.default.rawValue, duration: 0.18, removeOnCompletion: false, completion: { [weak self] value in
+            self.contentNode.layer.animate(from: (self.contentNode.frame.width / 2.0) as NSNumber, to: 0.0 as NSNumber, keyPath: "cornerRadius", timingFunction: CAMediaTimingFunctionName.default.rawValue, duration: 0.18 * durationFactor, removeOnCompletion: false, completion: { [weak self] value in
                 if value {
                     self?.contentNode.clipsToBounds = false
                 }
@@ -471,7 +472,7 @@ final class PeerAvatarImageGalleryItemNode: ZoomableContentGalleryItemNode {
         } else if case let .roundRect(cornerRadius) = self.sourceCorners {
             let scale = scaledLocalImageViewBounds.width / transformedCopyViewFinalFrame.width
             let selfScale = transformedCopyViewFinalFrame.width / transformedSelfFrame.width
-            self.contentNode.layer.animate(from: (cornerRadius * scale * selfScale) as NSNumber, to: 0.0 as NSNumber, keyPath: "cornerRadius", timingFunction: CAMediaTimingFunctionName.default.rawValue, duration: 0.18, removeOnCompletion: false, completion: { [weak self] value in
+            self.contentNode.layer.animate(from: (cornerRadius * scale * selfScale) as NSNumber, to: 0.0 as NSNumber, keyPath: "cornerRadius", timingFunction: CAMediaTimingFunctionName.default.rawValue, duration: 0.18 * durationFactor, removeOnCompletion: false, completion: { [weak self] value in
                 if value {
                     self?.contentNode.clipsToBounds = false
                 }
@@ -480,9 +481,9 @@ final class PeerAvatarImageGalleryItemNode: ZoomableContentGalleryItemNode {
             self.contentNode.clipsToBounds = false
         }
         
-        self.statusNodeContainer.layer.animatePosition(from: CGPoint(x: transformedSuperFrame.midX, y: transformedSuperFrame.midY), to: self.statusNodeContainer.position, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring)
-        self.statusNodeContainer.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring)
-        self.statusNodeContainer.layer.animateScale(from: 0.5, to: 1.0, duration: 0.25, timingFunction: kCAMediaTimingFunctionSpring)
+        self.statusNodeContainer.layer.animatePosition(from: CGPoint(x: transformedSuperFrame.midX, y: transformedSuperFrame.midY), to: self.statusNodeContainer.position, duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring)
+        self.statusNodeContainer.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring)
+        self.statusNodeContainer.layer.animateScale(from: 0.5, to: 1.0, duration: 0.25 * durationFactor, timingFunction: kCAMediaTimingFunctionSpring)
     }
     
     override func animateOut(to node: (ASDisplayNode, CGRect, () -> (UIView?, UIView?)), addToTransitionSurface: (UIView) -> Void, completion: @escaping () -> Void) {

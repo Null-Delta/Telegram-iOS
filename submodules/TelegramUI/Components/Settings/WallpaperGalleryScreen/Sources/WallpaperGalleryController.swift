@@ -419,7 +419,7 @@ public class WallpaperGalleryController: ViewController {
             updateItems.append(item)
             i += 1
         }
-        return GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: updateItems, focusOnItem: self.galleryNode.pager.centralItemNode()?.index, synchronous: false)
+        return GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: updateItems, focusOnItem: self.galleryNode.pager.centralItemNode()?.index, shouldScrollIfNeeded: true, synchronous: false)
     }
 
     private func updateCurrentEntryTransaction(entry: WallpaperGalleryEntry, arguments: WallpaperGalleryItemArguments, index: Int) -> GalleryPagerTransaction {
@@ -430,7 +430,7 @@ public class WallpaperGalleryController: ViewController {
                 updateItems.append(item)
             }
         }
-        return GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: updateItems, focusOnItem: self.galleryNode.pager.centralItemNode()?.index, synchronous: false)
+        return GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: updateItems, focusOnItem: self.galleryNode.pager.centralItemNode()?.index, shouldScrollIfNeeded: true, synchronous: false)
     }
     
     override public func loadDisplayNode() {

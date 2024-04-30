@@ -129,7 +129,7 @@ private final class SecretMediaPreviewControllerNode: GalleryControllerNode {
         self.onDismissTransitionUpdate(value)
     }
     
-    override func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+    override func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition, shouldScrollIfNeeded: Bool) {
         super.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
         
         self.validLayout = (layout, navigationBarHeight)
@@ -646,7 +646,7 @@ public final class SecretMediaPreviewController: ViewController {
         super.containerLayoutUpdated(layout, transition: transition)
         
         self.controllerNode.frame = CGRect(origin: CGPoint(), size: layout.size)
-        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition, shouldScrollIfNeeded: true)
     }
     
     override public func dismiss(completion: (() -> Void)? = nil) {

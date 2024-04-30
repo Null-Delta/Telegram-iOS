@@ -77,6 +77,7 @@ public final class ContactInfoScreen: ViewController {
             isMediaOnly: false,
             isSettings: false,
             isPreview: true,
+            isMyProfile: false,
             forumTopicThreadId: nil,
             chatLocation: .peer(id: PeerId(0))
         )
@@ -97,7 +98,7 @@ public final class ContactInfoScreen: ViewController {
         }
 
         if let peer {
-            let screenData = peerInfoScreenData(context: context, peerId: peer.id, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, isSettings: false, hintGroupInCommon: nil, existingRequestsContext: nil, chatLocation: .peer(id: PeerId(0)), chatLocationContextHolder: .init(value: nil))
+            let screenData = peerInfoScreenData(context: context, peerId: peer.id, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, isSettings: false, isMyProfile: false, hintGroupInCommon: nil, existingRequestsContext: nil, chatLocation: .peer(id: PeerId(0)), chatLocationContextHolder: .init(value: nil))
 
             self.dataDisposable = screenData.startStrict(next: { [weak self] dataa in
                 guard let strongSelf = self else {
@@ -201,7 +202,7 @@ public final class ContactInfoScreen: ViewController {
 
         transition.updateFrame(view: scrollView, frame: CGRect(origin: .zero, size: layout.size))
 
-        let state = PeerInfoState(isEditing: false, selectedMessageIds: nil, updatingAvatar: nil, updatingBio: nil, avatarUploadProgress: nil, highlightedButton: nil)
+        let state = PeerInfoState(isEditing: false, selectedMessageIds: nil, selectedStoryIds: nil, updatingAvatar: nil, updatingBio: nil, avatarUploadProgress: nil, highlightedButton: nil, isEditingBirthDate: false, updatingBirthDate: nil, personalChannels: nil)
 
         let headerHeight = headerNode.update(
             width: layout.size.width,
@@ -350,7 +351,7 @@ public final class ContactInfoScreen: ViewController {
                 isContact: false,
                 isSettings: false,
                 isPreview: true,
-                state: PeerInfoState(isEditing: false, selectedMessageIds: nil, updatingAvatar: nil, updatingBio: nil, avatarUploadProgress: nil, highlightedButton: nil),
+                state: PeerInfoState(isEditing: false, selectedMessageIds: nil, selectedStoryIds: nil, updatingAvatar: nil, updatingBio: nil, avatarUploadProgress: nil, highlightedButton: nil, isEditingBirthDate: false, updatingBirthDate: nil, personalChannels: nil),
                 metrics: layout.metrics,
                 deviceMetrics: layout.deviceMetrics,
                 transition: transition,
@@ -597,7 +598,7 @@ public final class ContactInfoScreen: ViewController {
                         additionalText: additionalUsernames,
                         textColor: .accent,
                         icon: .qrCode,
-                        action: { [weak self] _ in
+                        action: { [weak self] _, _ in
                             guard let self else { return }
                             openUsername(value: "@\(mainUsername)")
                         },
@@ -606,7 +607,7 @@ public final class ContactInfoScreen: ViewController {
                                 "@\(mainUsername)",
                                 sourceNode
                             )
-                        }, linkItemAction: { type, item, _, _ in
+                        }, linkItemAction: { _, _, _, _, _ in
                         }, iconAction: { [weak self] in
                             guard let self else { return }
                             self.openQrCode()
@@ -631,7 +632,7 @@ public final class ContactInfoScreen: ViewController {
                         label: label,
                         text: formattedPhone,
                         textColor: .accent,
-                        action: { [weak self] node in
+                        action: { [weak self] node, _ in
                             guard let self else { return }
                             self.openPhone(value: formattedPhone, node: node, gesture: nil)
                         },
@@ -653,7 +654,7 @@ public final class ContactInfoScreen: ViewController {
                             label: localizedPhoneNumberLabel(label: phone.label, strings: presentationData.strings),
                             text: phone.value,
                             textColor: .accent,
-                            action: { [weak self] node in
+                            action: { [weak self] node, _ in
                                 guard let self else { return }
                                 self.openPhone(value: phone.value, node: node, gesture: nil)
                             },
@@ -674,14 +675,14 @@ public final class ContactInfoScreen: ViewController {
                          id: itemIndex,
                          label: presentationData.strings.Profile_About,
                          text: about,
-                         action: { node in },
+                         action: { node, _ in },
                          longTapAction: { node in
                              displayCopyContextMenuImpl(
                                 about,
                                 node
                              )
                          },
-                         linkItemAction: { [weak self] action, item, _, _ in
+                         linkItemAction: { [weak self] action, item, _, _, _ in
                              guard let self, let peer = peer else {
                                  return
                              }
@@ -700,7 +701,7 @@ public final class ContactInfoScreen: ViewController {
                         label: localizedPhoneNumberLabel(label: phone.label, strings: presentationData.strings),
                         text: phone.value,
                         textColor: .accent,
-                        action: { [weak self] node in
+                        action: { [weak self] node, _ in
                             guard let self else { return }
                             self.openPhone(value: phone.value, node: node, gesture: nil)
                         },
@@ -731,7 +732,7 @@ public final class ContactInfoScreen: ViewController {
                             label: presentationData.strings.ContactInfo_BirthdayLabel,
                             text: dateFormatter.string(from: birthday),
                             textColor: .accent,
-                            action: { _ in },
+                            action: { _, _ in },
                             longTapAction: { node in
                                 displayCopyContextMenuImpl(
                                     dateFormatter.string(from: birthday),
@@ -751,7 +752,7 @@ public final class ContactInfoScreen: ViewController {
                             label: socialProfile.element.service,
                             text: socialProfile.element.username,
                             textColor: .accent,
-                            action: { _ in },
+                            action: { _, _ in },
                             longTapAction: { node in
                                 displayCopyContextMenuImpl(
                                     socialProfile.element.username,

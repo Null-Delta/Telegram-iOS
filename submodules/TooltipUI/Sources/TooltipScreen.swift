@@ -172,8 +172,10 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         displayDuration: TooltipScreen.DisplayDuration,
         inset: CGFloat = 12.0,
         cornerRadius: CGFloat? = nil,
-        shouldDismissOnTouch: @escaping (CGPoint, CGRect) -> TooltipScreen.DismissOnTouch, requestDismiss: @escaping () -> Void, openActiveTextItem: ((TooltipActiveTextItem, TooltipActiveTextAction) -> Void)?)
-    {
+        shouldDismissOnTouch: @escaping (CGPoint, CGRect) -> TooltipScreen.DismissOnTouch, 
+        requestDismiss: @escaping () -> Void,
+        openActiveTextItem: ((TooltipActiveTextItem, TooltipActiveTextAction) -> Void)?
+    ) {
         self.context = context
         self.tooltipStyle = style
         self.arrowStyle = arrowStyle
@@ -1071,7 +1073,9 @@ public final class TooltipScreen: ViewController {
     private var dismissTimer: Foundation.Timer?
     
     public var alwaysVisible = false
-    
+
+    public var onDismiss: (() -> Void)?
+
     public init(
         context: AccountContext? = nil,
         account: Account,
@@ -1209,5 +1213,6 @@ public final class TooltipScreen: ViewController {
     
     override public func dismiss(completion: (() -> Void)? = nil) {
         self.dismiss(inPlace: false, completion: completion)
+        self.onDismiss?()
     }
 }

@@ -150,9 +150,9 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
         self.scrollView.addSubview(self.pager.view)
         
         var previousIndex: Int?
-        self.pager.centralItemIndexOffsetUpdated = { [weak self] itemsIndexAndProgress in
+        self.pager.centralItemIndexOffsetUpdated = { [weak self] itemsIndexAndProgress, shouldScrollIfNeeded in
             if let strongSelf = self {
-                if abs(strongSelf.scrollView.contentOffset.y - strongSelf.scrollView.contentSize.height / 3.0) > 0.1 {
+                if abs(strongSelf.scrollView.contentOffset.y - strongSelf.scrollView.contentSize.height / 3.0) > 0.1 && shouldScrollIfNeeded {
                     strongSelf.scrollView.setContentOffset(CGPoint(x: 0.0, y: strongSelf.scrollView.contentSize.height / 3.0), animated: true)
                 }
                 
@@ -212,7 +212,7 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
                             node?.itemChanged = { [weak self] index in
                                 if let strongSelf = self {
                                     let pagerIndex = indexes[index]
-                                    strongSelf.pager.transaction(GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: [], focusOnItem: pagerIndex, synchronous: false))
+                                    strongSelf.pager.transaction(GalleryPagerTransaction(deleteItems: [], insertItems: [], updateItems: [], focusOnItem: pagerIndex, shouldScrollIfNeeded: true, synchronous: false))
                                 }
                             }
                         }
@@ -239,7 +239,7 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
                     if let node = node {
                         strongSelf.insertSubnode(node, aboveSubnode: strongSelf.footerNode)
                         if let (navigationHeight, layout) = strongSelf.containerLayout, thumbnailContainerVisible {
-                            strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+                            strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate, shouldScrollIfNeeded: false)
                             node.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
                             node.animateIn(fromLeft: fromLeft)
                         }
@@ -257,7 +257,7 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
         }
     }
     
-    open func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+    open func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition, shouldScrollIfNeeded: Bool = true) {
         self.containerLayout = (navigationBarHeight, layout)
         
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: self.isBackgroundExtendedOverNavigationBar ? 0.0 : navigationBarHeight), size: CGSize(width: layout.size.width, height: layout.size.height - (self.isBackgroundExtendedOverNavigationBar ? 0.0 : navigationBarHeight))))
@@ -299,7 +299,7 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
         
         self.pager.frame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: layout.size)
 
-        self.pager.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
+        self.pager.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition, shouldScrollIfNeeded: shouldScrollIfNeeded)
     }
     
     open func setControlsHidden(_ hidden: Bool, animated: Bool) {
@@ -511,10 +511,10 @@ open class GalleryControllerNode: ASDisplayNode, ASScrollViewDelegate, ASGesture
         }
     }
     
-    open func updatePresentationState(_ f: (GalleryControllerPresentationState) -> GalleryControllerPresentationState, transition: ContainedViewLayoutTransition) {
+    open func updatePresentationState(_ f: (GalleryControllerPresentationState) -> GalleryControllerPresentationState, transition: ContainedViewLayoutTransition, shouldScrollIfNeeded: Bool = true) {
         self.presentationState = f(self.presentationState)
         if let (navigationBarHeight, layout) = self.containerLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition, shouldScrollIfNeeded: shouldScrollIfNeeded)
         }
     }
     
