@@ -68,6 +68,7 @@ final class BotPaymentSwitchItemNode: BotPaymentItemNode {
             self.switchNode.frameColor = theme.list.itemSwitchColors.frameColor
             self.switchNode.contentColor = theme.list.itemSwitchColors.contentColor
             self.switchNode.handleColor = theme.list.itemSwitchColors.handleColor
+            self.switchNode.switchBackgroundColor = (theme.list.itemBlocksBackgroundColor, theme.overallDarkAppearance)
         }
         
         let leftInset: CGFloat = 16.0

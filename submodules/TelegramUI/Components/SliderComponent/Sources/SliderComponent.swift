@@ -74,12 +74,16 @@ public final class SliderComponent: Component {
     public let knobSize: CGFloat?
     public let knobColor: UIColor?
     public let isTrackingUpdated: ((Bool) -> Void)?
-    
+    public let backgroundColor: UIColor
+    public let isDarkThemeOrverrided: Bool
+
     public init(
         content: Content,
         useNative: Bool = false,
         trackBackgroundColor: UIColor,
         trackForegroundColor: UIColor,
+        backgroundColor: UIColor,
+        isDarkThemeOrverrided: Bool,
         minTrackForegroundColor: UIColor? = nil,
         knobSize: CGFloat? = nil,
         knobColor: UIColor? = nil,
@@ -89,6 +93,8 @@ public final class SliderComponent: Component {
         self.useNative = useNative
         self.trackBackgroundColor = trackBackgroundColor
         self.trackForegroundColor = trackForegroundColor
+        self.backgroundColor = backgroundColor
+        self.isDarkThemeOrverrided = isDarkThemeOrverrided
         self.minTrackForegroundColor = minTrackForegroundColor
         self.knobSize = knobSize
         self.knobColor = knobColor
@@ -124,7 +130,8 @@ public final class SliderComponent: Component {
     public final class View: UIView {
         private var nativeSliderView: SliderView?
         private var sliderView: TGPhotoEditorSliderView?
-        
+        private var customSliderView: CustomSliderView?
+
         private var component: SliderComponent?
         private weak var state: EmptyComponentState?
         
@@ -189,6 +196,60 @@ public final class SliderComponent: Component {
                 sliderView.minimumTrackTintColor = component.trackForegroundColor
                 sliderView.maximumTrackTintColor = component.trackBackgroundColor
                 
+                transition.setFrame(view: sliderView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: availableSize.width, height: 44.0)))
+            } else if component.useNative {
+                let sliderView: CustomSliderView
+                if let current = self.customSliderView {
+                    sliderView = current
+                } else {
+                    sliderView = CustomSliderView()
+                    sliderView.disablesInteractiveTransitionGestureRecognizer = true
+                    sliderView.layer.allowsGroupOpacity = true
+
+                    switch component.content {
+                    case let .discrete(discrete):
+                        sliderView.minimumValue = 0.0
+                        sliderView.maximumValue = CGFloat(discrete.valueCount - 1)
+                        sliderView.controlPointsCount = discrete.valueCount
+                    case .continuous(let continuous):
+                        sliderView.minimumValue = CGFloat(continuous.minValue ?? 0.0)
+                        sliderView.maximumValue = 1.0
+                    }
+
+                    sliderView.backgroundColor = nil
+                    sliderView.isOpaque = false
+
+                    sliderView.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: size)
+                    sliderView.onUpdate = { [weak self] value in
+                        guard let component = self?.component else { return }
+
+                        switch component.content {
+                        case let .discrete(discrete):
+                            discrete.valueUpdated(Int(value))
+                        case let .continuous(continuous):
+                            continuous.valueUpdated(value)
+                        }
+                    }
+
+                    sliderView.layer.allowsGroupOpacity = true
+                    self.customSliderView = sliderView
+                    self.addSubview(sliderView)
+                }
+
+                sliderView.backColor = component.trackBackgroundColor
+                sliderView.trackColor = component.trackForegroundColor
+                sliderView.backgroundColor = component.backgroundColor
+                sliderView.isDarkAppearanceOverrided = component.isDarkThemeOrverrided
+
+                if !sliderView.isTracking {
+                    switch component.content {
+                    case let .discrete(discrete):
+                        sliderView.setValue(CGFloat(discrete.value), animated: false)
+                    case let .continuous(continuous):
+                        sliderView.setValue(continuous.value, animated: false)
+                    }
+                }
+
                 transition.setFrame(view: sliderView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: availableSize.width, height: 44.0)))
             } else {
                 var internalIsTrackingUpdated: ((Bool) -> Void)?

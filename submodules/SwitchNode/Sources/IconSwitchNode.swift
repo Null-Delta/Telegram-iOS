@@ -10,9 +10,30 @@ private final class IconSwitchNodeViewLayer: CALayer {
     }
 }
 
-private final class IconSwitchNodeView: TGIconSwitchView {
+private final class IconSwitchNodeView: TGIconSwitchView, SwitchNodeViewProtocol {
+    private var action: ((Bool) -> Void)?
+
+    var switchBackgroundColor: (color: UIColor, isDark: Bool) = (.clear, false)
+
     override class var layerClass: AnyClass {
         return IconSwitchNodeViewLayer.self
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.addTarget(self, action: #selector(onAction), for: .valueChanged)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setAction(_ action: @escaping (Bool) -> Void) {
+        self.action = action
+    }
+
+    @objc private func onAction() {
+        action?(isOn)
     }
 }
 
@@ -54,7 +75,9 @@ open class IconSwitchNode: ASDisplayNode {
             }
         }
     }
-    
+
+    public var switchBackgroundColor: (color: UIColor, isDark: Bool) = (.clear, false)
+
     private var _isOn: Bool = false
     public var isOn: Bool {
         get {

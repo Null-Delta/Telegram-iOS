@@ -51,6 +51,59 @@ private final class ContentContainer: UIView {
 }
 
 public class GlassBackgroundView: UIView {
+    private struct EffectState {
+        var scaled: Bool
+        var stretchVector: CGPoint
+        var viewWidth: CGFloat
+        var viewHeight: CGFloat
+
+        private let additionalScaleConst: CGFloat = 16
+
+        var scale: CGFloat {
+            scaled ? (viewWidth + additionalScaleConst) / viewWidth : 1
+        }
+
+        var transform: CATransform3D {
+            let aspectRatio = viewWidth / viewHeight
+
+            let length = sqrt(pow(stretchVector.x / aspectRatio, 2) + pow(stretchVector.y, 2))
+            let normal = CGPoint(x: stretchVector.x / aspectRatio / length, y: stretchVector.y / length)
+
+            guard length != 0 else {
+                return CATransform3DScale(CATransform3DIdentity, scale, scale, 1)
+            }
+
+            let k: CGFloat = -1.0 / ((length / viewHeight) / (5.0 * aspectRatio) + 1.0) + 1.0
+            let additionalMaxScale = (viewHeight + 16.0 / aspectRatio) / viewHeight - 1
+
+            let t = additionalMaxScale * k * aspectRatio
+
+            let maxOffset = 24.0
+
+            if abs(normal.x) > abs(normal.y) {
+                let diff = abs(normal.x) - abs(normal.y)
+                var transform = CATransform3DIdentity
+                transform.m11 = scale * (1 + t * diff)
+                transform.m22 = scale * (1 / (1 + t * diff))
+
+                transform.m41 = normal.x * maxOffset * k
+                transform.m42 = normal.y * maxOffset * k
+
+                return transform
+            } else {
+                let diff = abs(normal.y) - abs(normal.x)
+                var transform = CATransform3DIdentity
+                transform.m11 = scale * (1 / (1 + t * diff))
+                transform.m22 = scale * (1 + t * diff)
+
+                transform.m41 = normal.x * maxOffset * k
+                transform.m42 = normal.y * maxOffset * k
+
+                return transform
+            }
+        }
+    }
+
     public protocol ContentView: UIView {
         var tintMask: UIView { get }
     }
@@ -313,7 +366,48 @@ public class GlassBackgroundView: UIView {
     private let maskContainerView: UIView
     public let maskContentView: UIView
     private let contentContainer: ContentContainer
-    
+    private let highlightView: UIView?
+
+    private var longPressGesture: UILongPressGestureRecognizer?
+    private var startGesturePosition: CGPoint = .zero
+    private var isGestureActive: Bool = false
+    private var effectState: EffectState = EffectState(scaled: false, stretchVector: .zero, viewWidth: 1, viewHeight: 1) {
+        didSet {
+            let currentTransform = (layer.presentation() ?? layer).sublayerTransform
+
+            if effectState.scaled == oldValue.scaled {
+                let animation = CABasicAnimation(keyPath: "sublayerTransform")
+                animation.fromValue = NSValue(caTransform3D: currentTransform)
+                animation.toValue = NSValue(caTransform3D: effectState.transform)
+                animation.duration = 0.1
+                animation.fillMode = .both
+                animation.isRemovedOnCompletion = false
+
+                layer.add(animation, forKey: "sublayerTransform")
+                layer.sublayerTransform = effectState.transform
+            } else {
+                let animation = CASpringAnimation(keyPath: "sublayerTransform")
+                animation.fromValue = NSValue(caTransform3D: currentTransform)
+                animation.toValue = NSValue(caTransform3D: effectState.transform)
+                animation.mass = 1.0
+                animation.stiffness = 300.0
+                animation.damping = 15.0
+                animation.initialVelocity = 0.0
+                animation.duration = animation.settlingDuration
+                animation.fillMode = .both
+                animation.isRemovedOnCompletion = false
+
+                layer.add(animation, forKey: "sublayerTransform")
+                layer.sublayerTransform = effectState.transform
+            }
+
+            if let highlightView {
+                let transition = ComponentTransition(animation: .curve(duration: 0.2, curve: .linear))
+                transition.setAlpha(view: highlightView, alpha: effectState.scaled ? 0.25 : 0)
+            }
+        }
+    }
+
     private var innerBackgroundView: UIView?
     
     public var contentView: UIView {
@@ -327,8 +421,10 @@ public class GlassBackgroundView: UIView {
     public private(set) var params: Params?
         
     public static var useCustomGlassImpl: Bool = false
-    
+
     public override init(frame: CGRect) {
+        let isCustomGlass: Bool
+
         if #available(iOS 26.0, *), !GlassBackgroundView.useCustomGlassImpl {
             self.backgroundNode = nil
             
@@ -345,6 +441,9 @@ public class GlassBackgroundView: UIView {
             
             self.foregroundView = nil
             self.shadowView = nil
+            self.highlightView = nil
+
+            isCustomGlass = false
         } else {
             let backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true, customBlurRadius: 8.0)
             self.backgroundNode = backgroundNode
@@ -354,6 +453,9 @@ public class GlassBackgroundView: UIView {
             self.foregroundView = UIImageView()
             
             self.shadowView = UIImageView()
+            self.highlightView = UIView()
+
+            isCustomGlass = true
         }
         
         self.maskContainerView = UIView()
@@ -366,7 +468,7 @@ public class GlassBackgroundView: UIView {
         self.maskContainerView.addSubview(self.maskContentView)
         
         self.contentContainer = ContentContainer(maskContentView: self.maskContentView)
-        
+
         super.init(frame: frame)
         
         if let shadowView = self.shadowView {
@@ -378,17 +480,73 @@ public class GlassBackgroundView: UIView {
         if let backgroundNode = self.backgroundNode {
             self.addSubview(backgroundNode.view)
         }
+        if let highlightView {
+            self.addSubview(highlightView)
+            highlightView.backgroundColor = UIColor(dynamicProvider: { traitCollection in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return UIColor(red: 1, green: 1, blue: 1, alpha: 1)
+                } else {
+                    return UIColor(red: 2, green: 2, blue: 2, alpha: 1)
+                }
+            })
+            highlightView.alpha = 0
+        }
+
         if let foregroundView = self.foregroundView {
             self.addSubview(foregroundView)
             foregroundView.mask = self.maskContainerView
         }
         self.addSubview(self.contentContainer)
+
+        if isCustomGlass {
+            longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(onGesture(_:)))
+            longPressGesture?.minimumPressDuration = 0
+            longPressGesture?.cancelsTouchesInView = false
+            longPressGesture?.delegate = self
+            longPressGesture.map { addGestureRecognizer($0) }
+        }
     }
-    
+
     required public init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    @objc private func onGesture(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            triggerEffect(began: true)
+        case .changed:
+            effectState.stretchVector = CGPoint(
+                x: gesture.location(in: self).x - startGesturePosition.x,
+                y: gesture.location(in: self).y - startGesturePosition.y
+            )
+        case .failed, .cancelled, .ended:
+            triggerEffect(began: false)
+        case .recognized, .possible:
+            break
+        default:
+            break
+        }
+    }
     
+    public func triggerEffect(began: Bool, startLocation: CGPoint? = nil) {
+        if began, !isGestureActive {
+            startGesturePosition = startLocation ?? longPressGesture?.location(in: self) ?? .zero
+            effectState = EffectState(
+                scaled: true,
+                stretchVector: .zero,
+                viewWidth: bounds.width,
+                viewHeight: bounds.height
+            )
+            isGestureActive = true
+        } else if !began, isGestureActive {
+            effectState = EffectState(scaled: false, stretchVector: .zero, viewWidth: bounds.width, viewHeight: bounds.height)
+            isGestureActive = false
+            longPressGesture?.isEnabled = false
+            longPressGesture?.isEnabled = true
+        }
+    }
+
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if let nativeView = self.nativeView {
             if let result = nativeView.hitTest(self.convert(point, to: nativeView), with: event) {
@@ -399,9 +557,9 @@ public class GlassBackgroundView: UIView {
                 return result
             }
         }
-        return nil
+        return super.hitTest(point, with: event)
     }
-        
+
     public func update(size: CGSize, cornerRadius: CGFloat, isDark: Bool, tintColor: TintColor, isInteractive: Bool = false, transition: ComponentTransition) {
         self.update(size: size, shape: .roundedRect(cornerRadius: cornerRadius), isDark: isDark, tintColor: tintColor, isInteractive: isInteractive, transition: transition)
     }
@@ -423,6 +581,14 @@ public class GlassBackgroundView: UIView {
             switch shape {
             case let .roundedRect(cornerRadius):
                 backgroundNode.update(size: size, cornerRadius: cornerRadius, transition: transition.containedViewLayoutTransition)
+
+                if let highlightView {
+                    transition.containedViewLayoutTransition.updateFrame(
+                        view: highlightView,
+                        frame: CGRect(x: 0, y: 0, width: size.width, height: size.height)
+                    )
+                    transition.containedViewLayoutTransition.updateCornerRadius(layer: highlightView.layer, cornerRadius: cornerRadius)
+                }
             }
             transition.setFrame(view: backgroundNode.view, frame: CGRect(origin: CGPoint(), size: size))
         }
@@ -497,7 +663,7 @@ public class GlassBackgroundView: UIView {
                 foregroundView.image = GlassBackgroundView.generateLegacyGlassImage(size: CGSize(width: outerCornerRadius * 2.0, height: outerCornerRadius * 2.0), inset: shadowInset, isDark: isDark, fillColor: tintColor.color)
             } else {
                 if let nativeParamsView = self.nativeParamsView, let nativeView = self.nativeView {
-                    if #available(iOS 26.0, *) {
+                    if #available(iOS 26.0, *), !GlassBackgroundView.useCustomGlassImpl {
                         let glassEffect = UIGlassEffect(style: .regular)
                         switch tintColor.kind {
                         case .panel:
@@ -539,6 +705,12 @@ public class GlassBackgroundView: UIView {
     }
 }
 
+extension GlassBackgroundView: UIGestureRecognizerDelegate {
+    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+
 public final class GlassBackgroundContainerView: UIView {
     private final class ContentView: UIView {
     }
@@ -556,7 +728,7 @@ public final class GlassBackgroundContainerView: UIView {
     }
     
     public override init(frame: CGRect) {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !GlassBackgroundView.useCustomGlassImpl {
             let effect = UIGlassContainerEffect()
             effect.spacing = 7.0
             let nativeView = UIVisualEffectView(effect: effect)

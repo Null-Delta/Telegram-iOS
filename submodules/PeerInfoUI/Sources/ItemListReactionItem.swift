@@ -96,7 +96,8 @@ private protocol ItemListSwitchNodeImpl {
     var handleColor: UIColor { get set }
     var positiveContentColor: UIColor { get set }
     var negativeContentColor: UIColor { get set }
-    
+    var switchBackgroundColor: (color: UIColor, isDark: Bool) { get set }
+
     var isOn: Bool { get }
     func setOn(_ value: Bool, animated: Bool)
 }
@@ -188,8 +189,15 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
     
     override public func didLoad() {
         super.didLoad()
-        
-        (self.switchNode.view as? UISwitch)?.addTarget(self, action: #selector(self.switchValueChanged(_:)), for: .valueChanged)
+
+        (self.switchNode.view as? SwitchNodeViewProtocol)?.setAction { [weak self] isOn in
+            guard let self else { return }
+
+            if let item = self.item {
+                item.updated(isOn)
+            }
+        }
+
         self.switchGestureNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.tapGesture(_:))))
     }
     
@@ -305,6 +313,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                         strongSelf.switchNode.handleColor = item.presentationData.theme.list.itemSwitchColors.handleColor
                         strongSelf.switchNode.positiveContentColor = item.presentationData.theme.list.itemSwitchColors.positiveColor
                         strongSelf.switchNode.negativeContentColor = item.presentationData.theme.list.itemSwitchColors.negativeColor
+                        strongSelf.switchNode.switchBackgroundColor = (item.presentationData.theme.list.itemBlocksBackgroundColor, item.presentationData.theme.overallDarkAppearance)
                         
                         strongSelf.highlightedBackgroundNode.backgroundColor = item.presentationData.theme.list.itemHighlightedBackgroundColor
                     }
@@ -384,7 +393,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                     }
                     
                     strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((contentSize.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
-                    if let switchView = strongSelf.switchNode.view as? UISwitch {
+                    if let switchView = strongSelf.switchNode.view as? SwitchNodeViewProtocol {
                         if strongSelf.switchNode.bounds.size.width.isZero {
                             switchView.sizeToFit()
                         }
@@ -468,15 +477,8 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
     }
     
-    @objc private func switchValueChanged(_ switchView: UISwitch) {
-        if let item = self.item {
-            let value = switchView.isOn
-            item.updated(value)
-        }
-    }
-    
     @objc private func tapGesture(_ recognizer: UITapGestureRecognizer) {
-        if let item = self.item, let switchView = self.switchNode.view as? UISwitch, case .ended = recognizer.state {
+        if let item = self.item, let switchView = self.switchNode.view as? SwitchNodeViewProtocol, case .ended = recognizer.state {
             if item.enabled {
                 let value = switchView.isOn
                 item.updated(!value)

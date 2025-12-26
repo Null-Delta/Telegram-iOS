@@ -1061,7 +1061,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                 currentCheckNode = nil
             }
             
-            if let currentSwitchNode, let switchView = currentSwitchNode.view as? UISwitch {
+            if let currentSwitchNode, let switchView = currentSwitchNode.view as? SwitchNodeViewProtocol {
                 if currentSwitchNode.bounds.size.width.isZero {
                     switchView.sizeToFit()
                 }

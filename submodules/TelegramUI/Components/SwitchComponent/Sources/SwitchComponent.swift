@@ -34,17 +34,26 @@ public final class SwitchComponent: Component {
     
     public final class View: UIView {
         private let switchView: UISwitch
-    
+        private var customSwitchView: CustomSwitchView?
+
         private var component: SwitchComponent?
         
         override init(frame: CGRect) {
             self.switchView = UISwitch()
             
             super.init(frame: frame)
-            
-            self.addSubview(self.switchView)
-            
-            self.switchView.addTarget(self, action: #selector(self.valueChanged(_:)), for: .valueChanged)
+
+            if #available(iOS 26.0, *) {
+                self.addSubview(self.switchView)
+                self.switchView.addTarget(self, action: #selector(self.valueChanged(_:)), for: .valueChanged)
+            } else {
+                let customSwitchView = CustomSwitchView()
+                self.customSwitchView = customSwitchView
+                self.customSwitchView?.setAction { [weak self] isOn in
+                    self?.component?.valueUpdated(isOn)
+                }
+                self.addSubview(customSwitchView)
+            }
         }
         
         required init?(coder: NSCoder) {
@@ -57,14 +66,21 @@ public final class SwitchComponent: Component {
         
         func update(component: SwitchComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.component = component
-          
-            self.switchView.tintColor = component.tintColor
-            self.switchView.setOn(component.value, animated: !transition.animation.isImmediate)
-            
-            self.switchView.sizeToFit()
-            self.switchView.frame = CGRect(origin: .zero, size: self.switchView.frame.size)
-                        
-            return self.switchView.frame.size
+
+            if let customSwitchView {
+                customSwitchView.tintColor = component.tintColor
+                customSwitchView.setOn(component.value, animated: !transition.animation.isImmediate)
+
+                return customSwitchView.frame.size
+            } else {
+                switchView.tintColor = component.tintColor
+                switchView.setOn(component.value, animated: !transition.animation.isImmediate)
+
+                switchView.sizeToFit()
+                switchView.frame = CGRect(origin: .zero, size: switchView.frame.size)
+
+                return self.switchView.frame.size
+            }
         }
     }
 

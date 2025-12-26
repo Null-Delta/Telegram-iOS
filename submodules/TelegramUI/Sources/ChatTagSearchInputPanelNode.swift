@@ -330,9 +330,9 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
                 if buttonView.superview == nil {
                     buttonView.layer.anchorPoint = CGPoint(x: 1.0, y: 0.5)
                     buttonView.alpha = 0.0
-                    self.view.addSubview(buttonView)
+                    self.rightControlsBackgroundView.contentView.addSubview(buttonView)
                 }
-                let listModeFrame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 20.0 - 8.0 - buttonSize.width, y: floor((size.height - buttonSize.height) * 0.5)), size: buttonSize)
+                let listModeFrame = CGRect(origin: CGPoint(x: 8.0, y: 0), size: buttonSize)
                 listModeButtonFrameValue = listModeFrame
                 listModeButtonTransition.setPosition(view: buttonView, position: CGPoint(x: listModeFrame.minX + listModeFrame.width * buttonView.layer.anchorPoint.x, y: listModeFrame.minY + listModeFrame.height * buttonView.layer.anchorPoint.y))
                 listModeButtonTransition.setBounds(view: buttonView, bounds: CGRect(origin: CGPoint(), size: listModeFrame.size))
@@ -349,8 +349,8 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
             }
         }
         
-        var nextLeftX: CGFloat = 16.0 + 8.0
-        
+        var nextLeftX: CGFloat = 4.0
+
         var calendarButtonFrameValue: CGRect?
         var membersButtonFrameValue: CGRect?
         var resultsTextFrameValue: CGRect?
@@ -380,8 +380,8 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
             calendarButtonFrameValue = calendarButtonFrame
             if let calendarButtonView = self.calendarButton.view {
                 if calendarButtonView.superview == nil {
-                    self.view.addSubview(calendarButtonView)
-                    
+                    self.leftControlsBackgroundView.contentView.addSubview(calendarButtonView)
+
                     if !transition.animation.isImmediate {
                         calendarButtonView.alpha = 1.0
                         transition.animateAlpha(view: calendarButtonView, from: 0.0, to: 1.0)
@@ -440,7 +440,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
                     membersButtonTransition = membersButtonTransition.withAnimation(.none)
                     buttonView.alpha = 0.0
                     animateIn = true
-                    self.view.addSubview(buttonView)
+                    self.leftControlsBackgroundView.contentView.addSubview(buttonView)
                 }
                 let membersButtonFrame = CGRect(origin: CGPoint(x: nextLeftX, y: floor((size.height - buttonSize.height) * 0.5)), size: buttonSize)
                 membersButtonFrameValue = membersButtonFrame
@@ -507,7 +507,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
             if let resultsTextView = resultsText.view {
                 if resultsTextView.superview == nil {
                     resultsTextView.alpha = 0.0
-                    self.view.addSubview(resultsTextView)
+                    self.leftControlsBackgroundView.contentView.addSubview(resultsTextView)
                 }
                 resultsTextTransition.setFrame(view: resultsTextView, frame: resultsTextFrame)
                 transition.setAlpha(view: resultsTextView, alpha: 1.0)
@@ -546,7 +546,9 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
                 leftControlsRect = leftControlsRect.union(rect)
             }
         }
-        
+
+        leftControlsRect.origin.x = 20
+
         var leftControlsBackgroundFrame = CGRect(origin: CGPoint(x: 20.0, y: floor((height - 40.0) * 0.5)), size: CGSize(width: 0.0, height: 40.0))
         leftControlsBackgroundFrame.size.width = max(40.0, leftControlsRect.maxX - leftControlsBackgroundFrame.minX)
         transition.setFrame(view: self.leftControlsBackgroundView, frame: leftControlsBackgroundFrame)

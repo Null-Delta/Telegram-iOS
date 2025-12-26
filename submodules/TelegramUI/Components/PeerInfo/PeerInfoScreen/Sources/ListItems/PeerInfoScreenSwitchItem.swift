@@ -138,7 +138,7 @@ private final class PeerInfoScreenSwitchItemNode: PeerInfoScreenItemNode {
             self.switchNode.frameColor = presentationData.theme.list.itemSwitchColors.frameColor
             self.switchNode.contentColor = presentationData.theme.list.itemSwitchColors.contentColor
             self.switchNode.handleColor = presentationData.theme.list.itemSwitchColors.handleColor
-            
+            self.switchNode.switchBackgroundColor = (presentationData.theme.list.itemBlocksBackgroundColor, presentationData.theme.overallDarkAppearance)
             updateLockedIconImage = true
         }
         
@@ -184,7 +184,7 @@ private final class PeerInfoScreenSwitchItemNode: PeerInfoScreenItemNode {
         
         transition.updateFrame(node: self.textNode, frame: textFrame)
         
-        if let switchView = self.switchNode.view as? UISwitch {
+        if let switchView = self.switchNode.view as? SwitchNodeViewProtocol {
             if self.switchNode.bounds.size.width.isZero {
                 switchView.sizeToFit()
             }

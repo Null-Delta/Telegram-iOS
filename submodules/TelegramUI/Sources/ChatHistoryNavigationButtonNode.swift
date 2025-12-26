@@ -100,9 +100,11 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
         self.backgroundView.contentView.addSubview(self.imageView)
         self.imageView.frame = CGRect(origin: CGPoint(), size: size)
         
-        self.buttonNode.view.addSubview(self.badgeBackgroundView)
+        self.backgroundView.addSubview(self.badgeBackgroundView)
         self.badgeBackgroundView.contentView.addSubview(self.badgeTextNode.view)
-        
+
+        badgeBackgroundView.isUserInteractionEnabled = false
+
         self.frame = CGRect(origin: CGPoint(), size: size)
     }
     

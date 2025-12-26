@@ -770,10 +770,11 @@ public final class ListActionItemComponent: Component {
                         switchNode.frameColor = component.theme.list.itemSwitchColors.frameColor
                         switchNode.contentColor = component.theme.list.itemSwitchColors.contentColor
                         switchNode.handleColor = component.theme.list.itemSwitchColors.handleColor
+                        switchNode.switchBackgroundColor = (component.theme.list.itemBlocksBackgroundColor, component.theme.overallDarkAppearance)
                     }
-                    
+
                     var switchSize = CGSize(width: 51.0, height: 31.0)
-                    if let switchView = switchNode.view as? UISwitch {
+                    if let switchView = switchNode.view as? SwitchNodeViewProtocol {
                         if switchNode.bounds.size.width.isZero {
                             switchView.sizeToFit()
                         }
@@ -819,10 +820,11 @@ public final class ListActionItemComponent: Component {
                         switchNode.handleColor = component.theme.list.itemSwitchColors.handleColor
                         switchNode.positiveContentColor = component.theme.list.itemSwitchColors.positiveColor
                         switchNode.negativeContentColor = component.theme.list.itemSwitchColors.negativeColor
+                        switchNode.switchBackgroundColor = (component.theme.list.itemBlocksBackgroundColor, component.theme.overallDarkAppearance)
                     }
                     
                     var switchSize = CGSize(width: 51.0, height: 31.0)
-                    if let switchView = switchNode.view as? UISwitch {
+                    if let switchView = switchNode.view as? SwitchNodeViewProtocol {
                         if switchNode.bounds.size.width.isZero {
                             switchView.sizeToFit()
                         }

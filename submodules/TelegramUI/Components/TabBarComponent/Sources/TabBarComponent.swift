@@ -258,6 +258,7 @@ public final class TabBarComponent: Component {
                     return
                 }
                 item.contextAction?(gesture, itemView.contextContainerView)
+                liquidLensView.finishInteraction()
             }
         }
         

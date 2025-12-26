@@ -70,8 +70,8 @@ class ChatSlowmodeItemNode: ListViewItemNode {
     private let maskNode: ASImageNode
     
     private let textNodes: [TextNode]
-    private var sliderView: TGPhotoEditorSliderView?
-    
+    private var sliderView: CustomSliderView?
+
     private var item: ChatSlowmodeItem?
     private var layoutParams: ListViewItemLayoutParams?
     private var reportedValue: Int32?
@@ -102,14 +102,14 @@ class ChatSlowmodeItemNode: ListViewItemNode {
     
     func forceSetValue(_ value: Int32) {
         if let sliderView = self.sliderView {
-            sliderView.value = CGFloat(value)
+            sliderView.setValue(CGFloat(value), animated: false)
         }
     }
     
     func updateSliderView() {
         if let sliderView = self.sliderView, let item = self.item {
             sliderView.maximumValue = CGFloat(allowedValues.count - 1)
-            sliderView.positionsCount = allowedValues.count
+            sliderView.controlPointsCount = allowedValues.count
             var value: Int32 = 0
             for i in 0 ..< allowedValues.count {
                 if allowedValues[i] >= item.value {
@@ -118,8 +118,8 @@ class ChatSlowmodeItemNode: ListViewItemNode {
                 }
             }
             
-            sliderView.value = CGFloat(value)
-            
+            sliderView.setValue(CGFloat(value), animated: false)
+
             sliderView.isUserInteractionEnabled = true
             sliderView.alpha = 1.0
             sliderView.layer.allowsGroupOpacity = false
@@ -131,18 +131,12 @@ class ChatSlowmodeItemNode: ListViewItemNode {
         
         self.view.disablesInteractiveTransitionGestureRecognizer = true
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = CustomSliderView()
         sliderView.limitValueChangedToLatestState = true
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.dotSize = 5.0
         sliderView.minimumValue = 0.0
         sliderView.maximumValue = CGFloat(allowedValues.count - 1)
-        sliderView.positionsCount = allowedValues.count
-        sliderView.startValue = 0.0
+        sliderView.controlPointsCount = allowedValues.count
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
-        sliderView.useLinesForPositions = true
         if let item = self.item, let params = self.layoutParams {
             var value: Int32 = 0
             for i in 0 ..< allowedValues.count {
@@ -152,19 +146,28 @@ class ChatSlowmodeItemNode: ListViewItemNode {
                 }
             }
             
-            sliderView.value = CGFloat(value)
+            sliderView.setValue(CGFloat(value), animated: false)
             self.reportedValue = item.value
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.theme.list.itemAccentColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-            sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
         }
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+        sliderView.onUpdate = { [weak self] value in
+            guard let self, let item = self.item else {
+                return
+            }
+
+            let position = Int(value)
+            let value: Int32 = allowedValues[max(0, min(allowedValues.count - 1, position))]
+            if self.reportedValue != value {
+                self.reportedValue = value
+                item.updated(value)
+            }
+        }
         self.sliderView = sliderView
         
         self.updateSliderView()
@@ -285,14 +288,12 @@ class ChatSlowmodeItemNode: ListViewItemNode {
                         if themeUpdated {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-                            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
                             sliderView.trackColor = item.theme.list.itemAccentColor
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-                        sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
-                        
+
                         strongSelf.updateSliderView()
                     }
                 }
@@ -306,18 +307,5 @@ class ChatSlowmodeItemNode: ListViewItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let item = self.item, let sliderView = self.sliderView else {
-            return
-        }
-        
-        let position = Int(sliderView.value)
-        let value: Int32 = allowedValues[max(0, min(allowedValues.count - 1, position))]
-        if self.reportedValue != value {
-            self.reportedValue = value
-            item.updated(value)
-        }
     }
 }

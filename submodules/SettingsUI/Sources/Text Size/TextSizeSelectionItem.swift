@@ -76,7 +76,7 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: CustomSliderView?
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
     private let disabledOverlayNode: ASDisplayNode
@@ -123,33 +123,31 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
         
         self.accessibilityTraits = [.adjustable]
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.enablePanHandling = true
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.dotSize = 8.0
+        let sliderView = CustomSliderView()
         sliderView.minimumValue = 0.0
         sliderView.maximumValue = 4.0
-        sliderView.startValue = 0.0
-        sliderView.positionsCount = 5
-        sliderView.useLinesForPositions = true
+        sliderView.controlPointsCount = 5
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, let params = self.layoutParams {
             sliderView.isUserInteractionEnabled = item.enabled
             
-            sliderView.value = CGFloat((item.value - 8) / 2)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.enabled ? item.theme.list.itemAccentColor : item.theme.list.itemDisabledTextColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
             
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
+
+            sliderView.setValue(CGFloat((item.value - 8) / 2), animated: false)
         }
         self.view.insertSubview(sliderView, belowSubview: self.disabledOverlayNode.view)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+
+        sliderView.onUpdate = { [weak self] value in
+            let value = Int(value) * 2 + 8
+            self?.item?.updated(value)
+        }
         self.sliderView = sliderView
     }
     
@@ -270,16 +268,16 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
                         if themeUpdated {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         let value: CGFloat = CGFloat((item.value - 8) / 2)
-                        if firstTime {
-                            sliderView.value = value
-                        }
-                        
                         let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
+
+                        if firstTime {
+                            sliderView.setValue(value, animated: false)
+                        }
                     }
                 }
             })
@@ -292,13 +290,5 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView else {
-            return
-        }
-        let value = Int(sliderView.value) * 2 + 8
-        self.item?.updated(value)
     }
 }

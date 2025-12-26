@@ -67,8 +67,8 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
     private let maskNode: ASImageNode
     
     private let textNodes: [TextNode]
-    private var sliderView: TGPhotoEditorSliderView?
-    
+    private var sliderView: CustomSliderView?
+
     private var item: SubscriptionsCountItem?
     private var layoutParams: ListViewItemLayoutParams?
     
@@ -99,7 +99,7 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
     func updateSliderView() {
         if let sliderView = self.sliderView, let item = self.item {
             sliderView.maximumValue = CGFloat(item.values.count - 1)
-            sliderView.positionsCount = item.values.count
+            sliderView.controlPointsCount = item.values.count
             var value: Int32 = 0
             for i in 0 ..< item.values.count {
                 if item.values[i] >= item.value {
@@ -107,9 +107,11 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
                     break
                 }
             }
-            
-            sliderView.value = CGFloat(value)
-            
+
+            if !sliderView.isTracking {
+                sliderView.setValue(CGFloat(value), animated: false)
+            }
+
             sliderView.isUserInteractionEnabled = true
             sliderView.alpha = 1.0
             sliderView.layer.allowsGroupOpacity = false
@@ -119,16 +121,10 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.dotSize = 8.0
+        let sliderView = CustomSliderView()
         sliderView.minimumValue = 0.0
         sliderView.maximumValue = 6.0
-        sliderView.startValue = 0.0
-        sliderView.positionsCount = 7
-        sliderView.useLinesForPositions = true
+        sliderView.controlPointsCount = 7
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, let params = self.layoutParams {
             var value: Int32 = 0
@@ -138,18 +134,24 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
                     break
                 }
             }
-            sliderView.value = CGFloat(value)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.theme.list.itemAccentColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-            sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+            sliderView.setValue(CGFloat(value), animated: false)
         }
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+
+        sliderView.onUpdate = { [weak self] value in
+            guard let self, let item = self.item else { return }
+            let value = Int(value)
+            if value >= 0 && value < item.values.count {
+                item.updated(item.values[value])
+            }
+        }
+
         self.sliderView = sliderView
     }
     
@@ -268,12 +270,11 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
                             sliderView.trackColor = item.theme.list.itemAccentColor
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-                        sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
-                        
+
                         strongSelf.updateSliderView()
                     }
                 }
@@ -287,15 +288,5 @@ private final class SubscriptionsCountItemNode: ListViewItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView, let item = self.item else {
-            return
-        }
-        let value = Int(sliderView.value)
-        if value >= 0 && value < item.values.count {
-            self.item?.updated(item.values[value])
-        }
     }
 }

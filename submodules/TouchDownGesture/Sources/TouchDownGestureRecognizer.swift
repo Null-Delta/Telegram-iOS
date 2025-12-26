@@ -4,7 +4,8 @@ import UIKit.UIGestureRecognizerSubclass
 
 public class TouchDownGestureRecognizer: UIGestureRecognizer, UIGestureRecognizerDelegate {
     public var touchDown: (() -> Void)?
-    
+    public var touchUp: (() -> Void)?
+
     private var touchLocation: CGPoint?
     public var waitForTouchUp: (() -> Bool)?
     private var isWaitingForTouchUp: Bool = false
@@ -61,6 +62,8 @@ public class TouchDownGestureRecognizer: UIGestureRecognizer, UIGestureRecognize
         if let touchDown = self.touchDown, self.isWaitingForTouchUp {
             self.isWaitingForTouchUp = false
             touchDown()
+        } else if let touchUp {
+            touchUp()
         }
     }
 }

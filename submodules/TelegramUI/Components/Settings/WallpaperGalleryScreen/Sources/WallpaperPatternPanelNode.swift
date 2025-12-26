@@ -184,8 +184,8 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
     
     private let titleNode: ImmediateTextNode
     private let labelNode: ImmediateTextNode
-    private var sliderView: TGPhotoEditorSliderView?
-    
+    private var sliderView: CustomSliderView?
+
     private var disposable: Disposable?
     public var wallpapers: [TelegramWallpaper] = []
     private var currentWallpaper: TelegramWallpaper?
@@ -295,21 +295,14 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         self.scrollNode.view.showsVerticalScrollIndicator = false
         self.scrollNode.view.alwaysBounceHorizontal = true
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.disableSnapToPositions = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.startValue = 0.0
+        let sliderView = CustomSliderView()
         sliderView.minimumValue = 0.0
         sliderView.maximumValue = 200.0
-        if self.allowDark {
-            sliderView.positionsCount = 3
-        }
-        sliderView.useLinesForPositions = true
-        sliderView.value = intensityToSliderValue(50, allowDark: self.allowDark)
+        sliderView.setValue(intensityToSliderValue(50, allowDark: self.allowDark), animated: false)
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         sliderView.backgroundColor = .clear
         sliderView.backColor = self.theme.list.itemSwitchColors.frameColor
+        sliderView.isDarkAppearanceOverrided = self.theme.overallDarkAppearance
         if self.allowDark {
             sliderView.trackColor = self.theme.list.disclosureArrowColor
         } else {
@@ -317,7 +310,14 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         }
         
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+
+        sliderView.onUpdate = { [weak self] value in
+            guard let self else { return }
+            if let wallpaper = currentWallpaper {
+                patternChanged?(wallpaper, sliderValueToIntensity(value, allowDark: allowDark), sliderView.isTracking)
+            }
+        }
+
         self.sliderView = sliderView
     }
     
@@ -407,16 +407,6 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         }
     }
     
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView else {
-            return
-        }
-        
-        if let wallpaper = self.currentWallpaper {
-            self.patternChanged?(wallpaper, sliderValueToIntensity(sliderView.value, allowDark: self.allowDark), sliderView.isTracking)
-        }
-    }
-    
     public func didAppear(initialWallpaper: TelegramWallpaper? = nil, intensity: Int32? = nil) {
         let wallpaper: TelegramWallpaper?
 
@@ -439,8 +429,11 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
             }
             
             self.currentWallpaper = wallpaper
-            self.sliderView?.value = intensity.flatMap { intensityToSliderValue($0, allowDark: self.allowDark) } ?? intensityToSliderValue(50, allowDark: self.allowDark)
-            
+            self.sliderView?.setValue(
+                intensity.flatMap { intensityToSliderValue($0, allowDark: self.allowDark) } ?? intensityToSliderValue(50, allowDark: self.allowDark),
+                animated: false
+            )
+
             self.scrollNode.view.contentOffset = CGPoint()
             
             var selectedNode: SettingsThemeWallpaperNode?
@@ -503,7 +496,7 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         let originY: CGFloat = scrollViewFrame.maxY + floor((size.height - scrollViewFrame.maxY - combinedHeight) / 2.0)
         transition.updateFrame(node: self.labelNode, frame: CGRect(origin: CGPoint(x: 14.0, y: originY), size: labelSize))
         
-        self.sliderView?.frame = CGRect(origin: CGPoint(x: 15.0, y: originY + 8.0), size: CGSize(width: size.width - 15.0 * 2.0, height: 44.0))
+        self.sliderView?.frame = CGRect(origin: CGPoint(x: 15.0, y: originY + 16.0), size: CGSize(width: size.width - 15.0 * 2.0, height: 44.0))
         
         self.layoutItemNodes(transition: transition)
     }

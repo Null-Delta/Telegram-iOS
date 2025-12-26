@@ -299,7 +299,9 @@ private final class AutodownloadDataUsagePickerItemNode: ListViewItemNode {
                                 )),
                                 useNative: true,
                                 trackBackgroundColor: item.theme.list.itemSwitchColors.frameColor,
-                                trackForegroundColor: item.theme.list.itemAccentColor
+                                trackForegroundColor: item.theme.list.itemAccentColor,
+                                backgroundColor: item.theme.list.itemBlocksBackgroundColor,
+                                isDarkThemeOrverrided: item.theme.overallDarkAppearance
                             )
                         ),
                         environment: {},

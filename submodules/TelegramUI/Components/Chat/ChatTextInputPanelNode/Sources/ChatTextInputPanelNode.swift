@@ -1174,6 +1174,24 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.touchDownGestureRecognizer = recognizer
         
         textInputNode.textView.accessibilityHint = self.textPlaceholderNode.attributedText?.string
+
+        let recognizer2 = TouchDownGestureRecognizer(target: self, action: #selector(self.textInputBackgroundViewTap(_:)))
+
+        recognizer2.touchDown = { [weak self] in
+            guard let self else { return }
+            textInputContainerBackgroundView.triggerEffect(
+                began: true,
+                startLocation: recognizer2.location(in: textInputContainerBackgroundView)
+            )
+        }
+        recognizer2.touchUp = { [weak self] in
+            self?.textInputContainerBackgroundView.triggerEffect(began: false)
+        }
+        recognizer2.waitForTouchUp = {
+            return false
+        }
+
+        textInputNode.view.addGestureRecognizer(recognizer2)
     }
     
     private func textFieldMaxHeight(_ maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat) -> CGFloat {

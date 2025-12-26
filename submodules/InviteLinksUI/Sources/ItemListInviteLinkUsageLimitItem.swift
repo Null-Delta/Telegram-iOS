@@ -149,8 +149,8 @@ private final class ItemListInviteLinkUsageLimitItemNode: ListViewItemNode {
     private let highTextNode: TextNode
     private let unlimitedTextNode: TextNode
     private let customTextNode: TextNode
-    private var sliderView: TGPhotoEditorSliderView?
-    
+    private var sliderView: CustomSliderView?
+
     private var item: ItemListInviteLinkUsageLimitItem?
     private var layoutParams: ListViewItemLayoutParams?
     
@@ -199,13 +199,16 @@ private final class ItemListInviteLinkUsageLimitItemNode: ListViewItemNode {
         if let sliderView = self.sliderView, let item = self.item {
             if case .custom = item.value {
                 sliderView.maximumValue = 3.0 + 1
-                sliderView.positionsCount = 4 + 1
+                sliderView.controlPointsCount = 4 + 1
             } else {
                 sliderView.maximumValue = 3.0
-                sliderView.positionsCount = 4
+                sliderView.controlPointsCount = 4
             }
-            sliderView.value = CGFloat(item.value.position)
-            
+
+            if !sliderView.isTracking {
+                sliderView.setValue(CGFloat(item.value.position), animated: false)
+            }
+
             sliderView.isUserInteractionEnabled = item.enabled
             sliderView.alpha = item.enabled ? 1.0 : 0.4
             sliderView.layer.allowsGroupOpacity = !item.enabled
@@ -215,35 +218,33 @@ private final class ItemListInviteLinkUsageLimitItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.dotSize = 5.0
+        let sliderView = CustomSliderView()
         sliderView.minimumValue = 0.0
-        sliderView.startValue = 0.0
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, case .custom = item.value {
             sliderView.maximumValue = 3.0 + 1
-            sliderView.positionsCount = 4 + 1
+            sliderView.controlPointsCount = 4 + 1
         } else {
             sliderView.maximumValue = 3.0
-            sliderView.positionsCount = 4
+            sliderView.controlPointsCount = 4
         }
-        sliderView.useLinesForPositions = true
+
         if let item = self.item, let params = self.layoutParams {
-            sliderView.value = CGFloat(item.value.position)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.theme.list.itemAccentColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-            sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+            sliderView.setValue(CGFloat(item.value.position), animated: false)
         }
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+
+        sliderView.onUpdate = { [weak self] value in
+            let position = Int(value)
+            let value = InviteLinkUsageLimit(position: position)
+            self?.item?.updated(value)
+        }
         self.sliderView = sliderView
         
         self.updateSliderView()
@@ -375,14 +376,12 @@ private final class ItemListInviteLinkUsageLimitItemNode: ListViewItemNode {
                         if themeUpdated {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-                            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
                             sliderView.trackColor = item.theme.list.itemAccentColor
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-                        sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
-                        
+
                         strongSelf.updateSliderView()
                     }
                 }
@@ -396,16 +395,6 @@ private final class ItemListInviteLinkUsageLimitItemNode: ListViewItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView else {
-            return
-        }
-        
-        let position = Int(sliderView.value)
-        let value = InviteLinkUsageLimit(position: position)
-        self.item?.updated(value)
     }
 }
 

@@ -74,7 +74,7 @@ final class InstantPageSettingsSwitchNode: InstantPageSettingsItemNode {
         
         let labelSize = self.labelNode.measure(CGSize(width: width - 46.0 - 5.0, height: 44.0))
         self.labelNode.frame = CGRect(origin: CGPoint(x: 15.0, y: insets.top + floor((44.0 - labelSize.height) / 2.0)), size: labelSize)
-        if let switchView = self.switchNode.view as? UISwitch {
+        if let switchView = self.switchNode.view as? SwitchNodeViewProtocol {
             if self.switchNode.bounds.size.width.isZero {
                 switchView.sizeToFit()
             }

@@ -357,6 +357,8 @@ public final class ListItemSliderSelectorComponent: Component {
                         useNative: component.preferNative,
                         trackBackgroundColor: component.theme.list.controlSecondaryColor,
                         trackForegroundColor: component.theme.list.itemAccentColor,
+                        backgroundColor: component.theme.list.itemBlocksBackgroundColor,
+                        isDarkThemeOrverrided: component.theme.overallDarkAppearance,
                         minTrackForegroundColor: component.theme.list.itemAccentColor.mixedWith(component.theme.list.itemBlocksBackgroundColor, alpha: 0.6)
                     )),
                     environment: {},
@@ -379,6 +381,8 @@ public final class ListItemSliderSelectorComponent: Component {
                         useNative: component.preferNative,
                         trackBackgroundColor: component.theme.list.controlSecondaryColor,
                         trackForegroundColor: component.theme.list.itemAccentColor,
+                        backgroundColor: component.theme.list.itemBlocksBackgroundColor,
+                        isDarkThemeOrverrided: component.theme.overallDarkAppearance,
                         minTrackForegroundColor: component.theme.list.itemAccentColor.mixedWith(component.theme.list.itemBlocksBackgroundColor, alpha: 0.6)
                     )),
                     environment: {},

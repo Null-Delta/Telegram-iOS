@@ -200,7 +200,7 @@ private class MessagePriceItemNode: ListViewItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: CustomSliderView?
     private let leftTextNode: ImmediateTextNode
     private let rightTextNode: ImmediateTextNode
     private let centerTextButtonNode: HighlightableButtonNode
@@ -260,29 +260,43 @@ private class MessagePriceItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.enableEdgeTap = true
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 1.0
-        sliderView.lineSize = 4.0
-        sliderView.disablesInteractiveTransitionGestureRecognizer = true
+        let sliderView = CustomSliderView()
         if let item = self.item, let params = self.layoutParams {
             self.amount = Amount(realValue: Int(item.value), minRealValue: Int(item.minValue), maxRealValue: Int(item.maxValue), maxSliderValue: 999, isLogarithmic: true)
             
             sliderView.minimumValue = 0
-            sliderView.startValue = 0
             sliderView.maximumValue = CGFloat(self.amount.maxSliderValue)
-            sliderView.displayEdges = true
-            sliderView.value = CGFloat(self.amount.sliderValue)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.theme.list.itemAccentColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: 44.0))
+            sliderView.setValue(CGFloat(self.amount.sliderValue), animated: false)
         }
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+        sliderView.onUpdate = { [weak self] value in
+            guard let self else {
+                return
+            }
+            var updatedAmount = amount.withSliderValue(Int(value))
+            if updatedAmount.realValue > 50 {
+                if updatedAmount.realValue < 100 {
+                    updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 1.0) * 1.0))
+                } else if updatedAmount.realValue < 500 {
+                    updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 5.0) * 5.0))
+                } else if updatedAmount.realValue < 1000 {
+                    updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 10.0) * 10.0))
+                } else if updatedAmount.realValue < 5000 {
+                    updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 25.0) * 25.0))
+                } else {
+                    updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 50.0) * 50.0))
+                }
+            }
+            amount = updatedAmount
+            
+            item?.updated(Int64(amount.realValue), false)
+        }
         self.sliderView = sliderView
         
         self.centerTextButtonNode.view.insertSubview(self.centerTextButtonBackground, at: 0)
@@ -418,21 +432,14 @@ private class MessagePriceItemNode: ListViewItemNode {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSecondaryTextColor
                             sliderView.trackColor = item.theme.list.itemAccentColor.withAlphaComponent(0.45)
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: 44.0))
-                        
-                        sliderView.interactionEnded = {
-                            guard let self else {
-                                return
-                            }
-                            self.item?.updated(Int64(self.amount.realValue), true)
-                        }
-                        
+                                                
                         if !sliderView.isTracking {
                             strongSelf.amount = Amount(realValue: Int(item.value), minRealValue: Int(item.minValue), maxRealValue: Int(item.maxValue), maxSliderValue: 999, isLogarithmic: true)
-                            sliderView.value = CGFloat(strongSelf.amount.sliderValue)
+                            sliderView.setValue(CGFloat(strongSelf.amount.sliderValue), animated: false)
                         }
                     }
                     
@@ -507,29 +514,6 @@ private class MessagePriceItemNode: ListViewItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView else {
-            return
-        }
-        var updatedAmount = self.amount.withSliderValue(Int(sliderView.value))
-        if updatedAmount.realValue > 50 {
-            if updatedAmount.realValue < 100 {
-                updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 1.0) * 1.0))
-            } else if updatedAmount.realValue < 500 {
-                updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 5.0) * 5.0))
-            } else if updatedAmount.realValue < 1000 {
-                updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 10.0) * 10.0))
-            } else if updatedAmount.realValue < 5000 {
-                updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 25.0) * 25.0))
-            } else {
-                updatedAmount = updatedAmount.withRealValue(Int(round(Double(updatedAmount.realValue) / 50.0) * 50.0))
-            }
-        }
-        self.amount = updatedAmount
-        
-        self.item?.updated(Int64(self.amount.realValue), false)
     }
 }
 

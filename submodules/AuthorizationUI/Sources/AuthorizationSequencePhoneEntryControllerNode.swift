@@ -276,6 +276,7 @@ private final class ContactSyncNode: ASDisplayNode {
         self.switchNode.frameColor = theme.list.itemSwitchColors.frameColor
         self.switchNode.contentColor = theme.list.itemSwitchColors.contentColor
         self.switchNode.handleColor = theme.list.itemSwitchColors.handleColor
+        self.switchNode.switchBackgroundColor = (theme.list.itemBlocksBackgroundColor, theme.overallDarkAppearance)
         self.switchNode.isOn = true
         
         super.init()
@@ -286,7 +287,7 @@ private final class ContactSyncNode: ASDisplayNode {
     
     func updateLayout(width: CGFloat) -> CGSize {
         var switchSize = CGSize(width: 51.0, height: 31.0)
-        if let switchView = self.switchNode.view as? UISwitch {
+        if let switchView = self.switchNode.view as? SwitchNodeViewProtocol {
             if self.switchNode.bounds.size.width.isZero {
                 switchView.sizeToFit()
             }

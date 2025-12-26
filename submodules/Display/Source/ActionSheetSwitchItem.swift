@@ -58,6 +58,7 @@ public class ActionSheetSwitchNode: ActionSheetItemNode {
         self.switchNode.frameColor = theme.switchFrameColor
         self.switchNode.contentColor = theme.switchContentColor
         self.switchNode.handleColor = theme.switchHandleColor
+        self.switchNode.switchBackgroundColor = (theme.itemBackgroundColor, theme.backgroundType == .dark)
         self.switchNode.isAccessibilityElement = false
         
         self.accessibilityArea = AccessibilityAreaNode()
@@ -111,7 +112,7 @@ public class ActionSheetSwitchNode: ActionSheetItemNode {
         self.label.frame = CGRect(origin: CGPoint(x: 16.0, y: floorToScreenPixels((size.height - labelSize.height) / 2.0)), size: labelSize)
         
         var switchSize = CGSize(width: 51.0, height: 31.0)
-        if let switchView = self.switchNode.view as? UISwitch {
+        if let switchView = self.switchNode.view as? SwitchNodeViewProtocol {
             if self.switchNode.bounds.size.width.isZero {
                 switchView.sizeToFit()
             }

@@ -1611,6 +1611,8 @@ private final class ChatSendStarsScreenComponent: Component {
                     )),
                     trackBackgroundColor: .clear,
                     trackForegroundColor: .clear,
+                    backgroundColor: .clear,
+                    isDarkThemeOrverrided: false,
                     knobSize: 26.0,
                     knobColor: .white,
                     isTrackingUpdated: { [weak self] isTracking in

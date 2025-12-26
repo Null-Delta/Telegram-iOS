@@ -854,7 +854,7 @@ private class RecentSessionScreenNode: ViewControllerTracingNode, ASScrollViewDe
             let secretChatsTitleTextFrame = CGRect(origin: CGPoint(x: secretFrame.minX + inset, y: secretFrame.minY + floorToScreenPixels((fieldItemHeight - secretChatsTitleTextSize.height) / 2.0)), size: secretChatsTitleTextSize)
             transition.updateFrame(node: self.secretChatsTitleNode, frame: secretChatsTitleTextFrame)
 
-            if let switchView = self.secretChatsSwitchNode.view as? UISwitch {
+            if let switchView = self.secretChatsSwitchNode.view as? SwitchNodeViewProtocol {
                 if self.secretChatsSwitchNode.bounds.size.width.isZero {
                     switchView.sizeToFit()
                 }
@@ -871,7 +871,7 @@ private class RecentSessionScreenNode: ViewControllerTracingNode, ASScrollViewDe
         
         transition.updateFrame(node: self.acceptSeparatorNode, frame: CGRect(x: secretFrame.minX + inset, y: secretFrame.minY + fieldItemHeight, width: fieldFrame.width - inset, height: UIScreenPixel))
 
-        if let switchView = self.incomingCallsSwitchNode.view as? UISwitch {
+        if let switchView = self.incomingCallsSwitchNode.view as? SwitchNodeViewProtocol {
             if self.incomingCallsSwitchNode.bounds.size.width.isZero {
                 switchView.sizeToFit()
             }

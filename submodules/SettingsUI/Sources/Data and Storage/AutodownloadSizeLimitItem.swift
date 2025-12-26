@@ -114,8 +114,8 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode {
     private let minTextNode: TextNode
     private let maxTextNode: TextNode
     private let textNode: TextNode
-    private var sliderView: TGPhotoEditorSliderView?
-    
+    private var sliderView: CustomSliderView?
+
     private var item: AutodownloadSizeLimitItem?
     private var layoutParams: ListViewItemLayoutParams?
     
@@ -153,29 +153,24 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
-        sliderView.enablePanHandling = true
-        sliderView.trackCornerRadius = 2.0
-        sliderView.lineSize = 4.0
-        sliderView.dotSize = 5.0
+        let sliderView = CustomSliderView()
         sliderView.minimumValue = 0.0
         sliderView.maximumValue = 1.0
-        sliderView.startValue = 0.0
-        sliderView.displayEdges = true
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, let params = self.layoutParams {
-            sliderView.value = sliderValue(for: item.value)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
-            sliderView.startColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.theme.list.itemAccentColor
-            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
-            
+            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
+
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-            sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+            sliderView.setValue(sliderValue(for: item.value), animated: false)
         }
         self.view.addSubview(sliderView)
-        sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
+
+        sliderView.onUpdate = { [weak self] value in
+            self?.item?.updated(sizeValue(for: value))
+        }
         self.sliderView = sliderView
     }
     
@@ -279,11 +274,10 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode {
                             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
                             sliderView.trackColor = item.theme.list.itemAccentColor
-                            sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
+                            sliderView.isDarkAppearanceOverrided = item.theme.overallDarkAppearance
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-                        sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
                     }
                 }
             })
@@ -296,13 +290,5 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode {
     
     override func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
-    }
-    
-    @objc func sliderValueChanged() {
-        guard let sliderView = self.sliderView else {
-            return
-        }
-        let value = sizeValue(for: sliderView.value)
-        self.item?.updated(value)
     }
 }

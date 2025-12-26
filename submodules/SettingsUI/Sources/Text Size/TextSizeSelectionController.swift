@@ -179,7 +179,7 @@ private final class TextSizeSelectionControllerNode: ASDisplayNode, ASScrollView
     
     func updateFontSize() {
         if let (layout, navigationBarHeight) = self.validLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate, force: false)
         }
     }
     
@@ -192,7 +192,7 @@ private final class TextSizeSelectionControllerNode: ASDisplayNode, ASScrollView
             if customMode != self.toolbarNode.customMode {
                 self.toolbarNode.setCustomMode(customMode)
                 if let (layout, navigationBarHeight) = self.validLayout {
-                    self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
+                    self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate, force: true)
                     self.recursivelyEnsureDisplaySynchronously(true)
                 }
             }
@@ -542,19 +542,19 @@ private final class TextSizeSelectionControllerNode: ASDisplayNode, ASScrollView
         self.toolbarNode.updatePresentationData(presentationData: self.presentationData)
         self.toolbarNode.updatePresentationThemeSettings(presentationThemeSettings: self.presentationThemeSettings)
         if let (layout, navigationBarHeight) = self.validLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate, force: false)
             self.recursivelyEnsureDisplaySynchronously(true)
         }
     }
     
-    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition, force: Bool) {
         self.validLayout = (layout, navigationBarHeight)
         
         let bounds = CGRect(origin: CGPoint(), size: layout.size)
         self.scrollNode.frame = bounds
         
-        let toolbarHeight = self.toolbarNode.updateLayout(width: layout.size.width, bottomInset: layout.intrinsicInsets.bottom, layout: layout, transition: transition)
-        
+        let toolbarHeight = self.toolbarNode.updateLayout(width: layout.size.width, bottomInset: layout.intrinsicInsets.bottom, layout: layout, transition: transition, force: force)
+
         self.chatListBackgroundNode.frame = CGRect(x: bounds.width, y: 0.0, width: bounds.width, height: bounds.height)
         var chatFrame = CGRect(x: 0.0, y: 0.0, width: bounds.width, height: bounds.height)
         
@@ -698,7 +698,7 @@ final class TextSizeSelectionController: ViewController {
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         
-        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition, force: false)
     }
 }
 
@@ -801,13 +801,13 @@ private final class TextSelectionToolbarNode: ASDisplayNode {
         self.presentationThemeSettings = presentationThemeSettings
     }
     
-    func updateLayout(width: CGFloat, bottomInset: CGFloat, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) -> CGFloat {
+    func updateLayout(width: CGFloat, bottomInset: CGFloat, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition, force: Bool) -> CGFloat {
         var contentHeight: CGFloat = 0.0
         
         let switchItem = ItemListSwitchItem(presentationData: ItemListPresentationData(self.presentationData), title: self.presentationData.strings.Appearance_TextSize_UseSystem, value: self.presentationThemeSettings.useSystemFont, disableLeadingInset: true, sectionId: 0, style: .blocks, updated: { [weak self] value in
             self?.updateUseSystemFont?(value)
         })
-        let fontSizeItem = ThemeSettingsFontSizeItem(theme: self.presentationData.theme, fontSize: self.customMode == .chat ? self.presentationThemeSettings.fontSize : self.presentationThemeSettings.listsFontSize, enabled: !self.presentationThemeSettings.useSystemFont, disableLeadingInset: true, disableDecorations: true, force: true, sectionId: 0, updated: { [weak self] value in
+        let fontSizeItem = ThemeSettingsFontSizeItem(theme: self.presentationData.theme, fontSize: self.customMode == .chat ? self.presentationThemeSettings.fontSize : self.presentationThemeSettings.listsFontSize, enabled: !self.presentationThemeSettings.useSystemFont, disableLeadingInset: true, disableDecorations: true, force: force, sectionId: 0, updated: { [weak self] value in
             self?.updateCustomFontSize?(value)
         })
         
